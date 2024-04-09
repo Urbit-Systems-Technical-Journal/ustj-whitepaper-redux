@@ -64,9 +64,9 @@ The system has primarily changed via addition, mostly growing upward in the stac
 
 Urbit's ``scry'' data namespace is also much more real and fleshed out than it was when the whitepaper was written.  The concept of scrying predates Urbit itself (\citet{Yarvin2006a}; compare \citet{Yarvin2010}), but was not used heavily by applications.
 
-The other big change is the public key infrastructure ({\sc pki}).  The whitepaper's {\sc pki}, which was live from 2013 to 2019 (TODO: check date), had no double-spend protection and was effectively centralized.  To fix this, the {\sc pki} was moved to a set of Ethereum contracts.  Going on-chain made the ownership ledger for Urbit IDs censorship-resistant ... until a year later when high transaction fees on Ethereum brought network growth to a standstill and the core developers were forced to write a custom "naive rollup" Ethereum contract.  This brought the price of spawning a new Urbit node down from hundreds of dollars to under a dollar, at the cost of on-chain interoperability.
+The other big change is the public key infrastructure ({\sc pki}).  The whitepaper's {\sc pki}, which was live from 2013 to 2019 (TODO: check date), had no double-spend protection and was effectively centralized.  To fix this, the {\sc pki} was moved to a set of Ethereum contracts.  Going on-chain made the ownership ledger for Urbit IDs censorship-resistant ... until a year later when high transaction fees on Ethereum brought network growth to a standstill and the core developers were forced to write a custom ``naive rollup'' Ethereum contract.  This brought the price of spawning a new Urbit node down from hundreds of dollars to under a dollar, at the cost of on-chain interoperability.
 
-Going on-chain also enabled "personal continuity breaches", where a ship owner can notify the network through the chain that their Urbit node was rebooted from scratch, due to data loss, unrecoverable error, or compromised security.  This feature necessitated some rework of the kernel to ensure data consistency across vanes when receiving a notification that a peer had breached.
+Going on-chain also enabled ``personal continuity breaches'', in which a ship owner can notify the network through the chain that their Urbit node was rebooted from scratch, due to data loss, unrecoverable error, or compromised security.  This feature necessitated some rework of the kernel to ensure data consistency across vanes when receiving a notification that a peer had breached.
 
 Finally, a ton of work has been done on Urbit's runtime.  Lots of 2016 vaporware is corporeal in 2024.
 
@@ -102,9 +102,9 @@ Note that this latest iteration, with a single large effect, is more declarative
 
 \subsubsection{Remote Scry Protocol}
 
-A major part of making the namespace more usable was to expose namespace queries over the network.  Designed in 2021 and deployed in 2023, the "Fine" remote scry network protocol was added to Urbit.  The first use cases were Clay, which uses it for downloading desks, and the Gall `%grow` namespace, described in more detail in a later section.
+A major part of making the namespace more usable was to expose namespace queries over the network.  Designed in 2021 and deployed in 2023, the ``Fine''\footnote{Pronounced \emph{fee-NAY}.} remote scry network protocol was added to Urbit.  The first use cases were Clay, which uses it for downloading desks, and the Gall \lstinline[style=inlinecode]{%grow} namespace, described in more detail in a later section.
 
-This protocol lets one ship fetch data at a namespace path bound by another ship.  The runtime includes a cache so later requests for the same data are typically served from the runtime cache rather than requiring Arvo's `+peek` arm to be called again.  In addition to the scalability benefits this provided, it also represented a fairly large conceptual shift: instead of Urbit's networking only being able to express commands (writes) over the network, it could now also support reads.
+This protocol lets one ship fetch data at a namespace path bound by another ship.  The runtime includes a cache so later requests for the same data are typically served from the runtime cache rather than requiring Arvo's \lstinline[style=inlinecode]{+peek} arm to be called again.  In addition to the scalability benefits this provided, it also represented a fairly large conceptual shift: instead of Urbit's networking only being able to express commands (writes) over the network, it could now also support reads.
 
 These reads are from the immutable namespace, so they're quite solid-state.
 
@@ -152,13 +152,13 @@ Another problem with depth-first ordering is that it makes consistency among mod
 
 The problem comes up when an agent wakes up with the notification that its subscription was closed and emits a move to resubscribe.  Gall then sends this move to Ames.  If Gall heard the breach notification before Ames, then the resubscribe request would be sent to the old pre-breach ship, since in depth-first move ordering, Ames hears Gall's requests before Jael's breach notification.  Since the ship had breached, it ignores the resubscribe request to its old key.
 
-This can be band-aided by baking the specifics of the interaction into Jael, so it knows to tell Ames about the breach before Gall.  This approach works as long as the data dependencies among modules remains acyclic, but as soon as two modules could both send moves to each other upon being notified – meaning they need to be notified "at the same time" – it becomes nontrivial to provide consistency.  It could be achieved through a two-phase commit system where Jael delivers two moves for each notification, and the receiving modules would know to update their state in response to the first notification but only emit moves upon hearing the second notification.
+This can be band-aided by baking the specifics of the interaction into Jael, so it knows to tell Ames about the breach before Gall.  This approach works as long as the data dependencies among modules remains acyclic, but as soon as two modules could both send moves to each other upon being notified – meaning they need to be notified ``at the same time'' – it becomes nontrivial to provide consistency.  It could be achieved through a two-phase commit system where Jael delivers two moves for each notification, and the receiving modules would know to update their state in response to the first notification but only emit moves upon hearing the second notification.
 
 The final problem with depth-first ordering is that empirically, it is difficult to reason about.  Moves are not processed chronologically – later moves can jump to the front of the queue.  This has led to a number of subtle bugs due to later moves invalidating earlier moves, such as canceling a subscription that hadn't been established yet because the unsubscribe move jumped in front of the subscribe move.
 
 The alternative that has been built uses breadth-first move ordering.  This is strictly chronological, does not reorder moves, has a concept of simultaneity for maintaining consistency when delivering notifications, and works equally well locally and over the network.  The major disadvantage of breadth-first ordering is that there is no automatically growing transaction: everything requires explicit acknowledgment.
 
-The latest "shrubbery" experiment uses a hybrid move ordering: depth-first for local pokes within the same application, and breadth-first otherwise.
+The latest ``shrubbery'' experiment uses a hybrid move ordering: depth-first for local pokes within the same application, and breadth-first otherwise.
 
 \subsection{Shrubbery}
 
@@ -170,7 +170,7 @@ A shrubbery model has the potential to make application programming significantl
 
 \subsubsection{Move Ordering in Shrubbery}
 
-The latest "shrubbery" experiment attempts a hybrid solution to get the best of both modalities.  A typical shrubbery "app" will be broken into a hierarchy of event handlers at various subpaths.  When sending a move "downward" into a subpath, the system will handle that move depth-first, since an app is presumed to know the characteristics of its sub-apps.  These moves will not need to be acknowledged, since they will be truly depth-first.  When passing a move "upward" or "sideways", i.e. outside of the sub-tree, that move will be appended to one global queue, to be handled breadth-first.
+The latest ``shrubbery'' experiment attempts a hybrid solution to get the best of both modalities.  A typical shrubbery ``app'' will be broken into a hierarchy of event handlers at various subpaths.  When sending a move ``downward'' into a subpath, the system will handle that move depth-first, since an app is presumed to know the characteristics of its sub-apps.  These moves will not need to be acknowledged, since they will be truly depth-first.  When passing a move ``upward'' or ``sideways'', i.e. outside of the sub-tree, that move will be appended to one global queue, to be handled breadth-first.
 
 This hybrid approach can be thought of as the lowest layers of the move tree being depth-first, with breadth-first at higher layers.  Core devs expect the shrubbery experiment to be runnable within a month of this writing.
 
@@ -192,7 +192,7 @@ In addition to moving the address ownership and sponsorship information on-chain
 
 \subsubsection{Azimuth: Individual Continuity Breaches}
 
-The capability to perform an ``individual continuity breach'' was added.  Before going on-chain, if an Urbit suffered any major data loss, it would be permanently dead and could never communicate with peers again.  An individual continuity breach allows a user to post a transaction to chain that increments the "rift" number for their address, signaling to the network that the ship has been restarted from scratch.  Peer ships that were storing message sequence numbers for the breached ship reset their networking state for the breached ship.
+The capability to perform an ``individual continuity breach'' was added.  Before going on-chain, if an Urbit suffered any major data loss, it would be permanently dead and could never communicate with peers again.  An individual continuity breach allows a user to post a transaction to chain that increments the ``rift'' number for their address, signaling to the network that the ship has been restarted from scratch.  Peer ships that were storing message sequence numbers for the breached ship reset their networking state for the breached ship.
 
 This allows a user to continue to use the address they purchased even if their Urbit loses data.  The newly written \lstinline[style=inlinecode]{%phoenix} app implements a system of encrypted backups, so that after a breach, a user can recover application data from the latest backup.
 
@@ -202,23 +202,23 @@ The Urbit galaxies have always been considered to form a senate, acting as the S
 
 There are two ways galaxies can vote: on (the hash of) a document to signal support of that document, and on a new constitution contract, which will trigger the old constitution contract to cede control to the new constitution contract that replaces it.  This means the galaxies can vote to upgrade the constitution as they see fit – an elegant example of social metacircularity.
 
-It should be noted that galactic governance is purely voluntary: because users have full control over their own personal servers, they retain the power to "vote with their feet" and decide to use a different {\sc pki} or a different governance structure.
+It should be noted that galactic governance is purely voluntary: because users have full control over their own personal servers, they retain the power to ``vote with their feet'' and decide to use a different {\sc pki} or a different governance structure.
 
 It is incumbent upon the galaxies to make decisions that are prudent enough not to fork the network – or prudent enough to fork the network, if called for.  Using a blockchain means a fork could be performed in an orderly manner without losing consistency.  This added technical feasibility of forking puts virtuous pressure on the galaxies to govern reasonably.
 
 \subsubsection{Azimuth: Naive Rollup}
 
-In 2020, Ethereum transaction fees rose to levels high enough that Urbit network growth ground to a halt.  The core developers, after evaluating the nascent "zero-knowledge" and "optimistic" rollup technologies for reducing fees, determined they were not yet production-worthy and wrote a simpler rollup that they called a "naive rollup".  This brought the price of spawning a planet down from roughly \$100 to under \$1.
+In 2020, Ethereum transaction fees rose to levels high enough that Urbit network growth ground to a halt.  The core developers, after evaluating then-nascent ``zero-knowledge'' and ``optimistic'' rollup technologies for reducing fees, determined they were not yet production-worthy and wrote a simpler rollup that they called a ``naive rollup''.  This brought the price of spawning a planet down from roughly \$100 to under \$1.
 
 The naive rollup treats Ethereum as an inert data store for storing a series of transaction inputs.  Each Urbit ship then reads those transaction inputs from Ethereum and executes them itself, arriving at the latest state of the rollup.  This can be thought of as a simplification of an optimistic rollup, where the chain does not have any representation of the latest state of the rollup, only the inputs that would lead to that state.  This obviates the need for fraud proofs and bond slashing, yielding a substantially simpler system at the cost of some interoperability between Urbit addresses in the rollup and other Ethereum contracts, which do not have any cryptographic proof on chain regarding which Ethereum address owns those addresses.
 
-Each ship's Azimuth state is stored either in the rollup or in the original contract.  Galaxies cannot be moved into the rollup.  For now, addresses cannot be moved back out of the rollup.
+Each ship's Azimuth state is stored either in the rollup or in the original contract.  Galaxies cannot be moved into the rollup.  For the time being, addresses cannot be moved back out of the rollup.
 
-\subsection{New Ames & New Jael (2019)}
+\subsection{New Ames \& New Jael (2019)}
 
 In order to take advantage of the new {\sc pki}, the Ames networking vane and Jael secret storage vane both had to be rewritten.  This was done in 2019, with new Ames being deployed later, near the end of the year.  
 
-The ``new'' Ames and Jael – now in their fourth year of use, with Ames having had some refactoring and extension – support individual continuity breaches and on-chain sponsorship changes ("escapes").  
+The ``new'' Ames and Jael – now in their fourth year of use, with Ames having had some refactoring and extension – support individual continuity breaches and on-chain sponsorship changes (``escapes'').  
 
 \subsection{Ford Fusion (2020)}
 
@@ -250,7 +250,7 @@ Since 2016, a much larger number of developers are involved in core development,
 
 \subsubsection{Organizational Changes}
 
-In early 2023, the responsibility for core development transferred from the Tlon Corporation, which had managed it since 2013, to the newer Urbit Foundation, a nonprofit.  UF adopted and continued to modify Tlon's release workflow, including CI/CD (continuous integration / continuous deployment), multi-stage canary deployments, and repository management practices.  This process has more recently been extended to include a liaison period for each Kelvin update where organizations that use Urbit can use the prerelease software on their own infrastructure first and report any bugs to UF.
+In early 2023, the responsibility for core development transferred from the Tlon Corporation, which had managed it since 2013, to the newer Urbit Foundation, a nonprofit.  The Urbit Foundation has become the custodian of the Urbit kernel and ecosystem.  UF adopted and continued to modify Tlon's release workflow, including CI/CD (continuous integration/continuous deployment), multi-stage canary deployments, and repository management practices.  This process has more recently been extended to include a liaison period for each Kelvin update where organizations that use Urbit can use the prerelease software on their own infrastructure first and report any bugs to UF.
 
 \subsubsection{Urbit Improvement Proposals}
 
@@ -272,13 +272,13 @@ All through 2017 and 2018, Urbit would crash for the typical user on a roughly w
 
 Kernel and app upgrades are much more reliable.  The system runs out of memory much less often.  The network maintains connectivity much better.  Commonly used applications have fewer bugs.  Browser page loads are much faster and more reliable.  Individual continuity breaches cause fewer downstream bugs in the kernel and applications.  Arvo error handling has fewer known flaws.  Gall subscriptions underwent a major rearchitecture in 2022 to fix a queue desynchronization bug.  The Behn timer module got rewritten multiple times to shake out several different bugs.
 
-The list goes on.  While Urbit still has flaws and occasional crashes, its level of robustness is strikingly higher than it was when the whitepaper was written.  By early 2025, we expect Urbit to be reliable enough to pass a security audit that includes penetration testing.
+The list goes on.  While Urbit still has flaws and occasional crashes, its level of robustness is strikingly higher than it was when the whitepaper was written.  By early 2025, we expect Urbit to be reliable enough to pass a security audit that includes penetration testing.  At that point, custodial cryptographic applications will be viable on the platform.
 
 \subsection{Runtime Work}
 
-The runtime has absorbed a large percentage of the work that has been done in the system in the last eight years.  The naive tree-walking Nock interpreter was replaced by a custom bytecode interpreter.  The system was made to recover from out-of-memory errors and automatically reclaim memory.  A memory allocator trick called "pointer compression" was used to increase data storage from 2GB to 8GB while remaining a 32-bit interpreter.  Demand paging was introduced, reducing the cost of running an Urbit ship from over \$10 per month to \$0.15 per month on some hosting platforms.
+The runtime has absorbed a large percentage of the work that has been done in the system in the last eight years.  The naive tree-walking Nock interpreter was replaced by a custom bytecode interpreter.  The system was made to recover from out-of-memory errors and automatically reclaim memory.  A memory allocator trick called ``pointer compression'' was used to increase data storage from 2~GB to 8~GB while remaining a 32-bit interpreter.  Demand paging was introduced, reducing the cost of running an Urbit ship from over \$10 per month to \$0.15 per month on some hosting platforms.
 
-The runtime was broken into two processes, allowing I/O and Arvo event processing to run in parallel.  The event log was moved out of a custom file into an {\sc lmdb} database, then broken up into "epochs" allowing for event log rollover and truncation.  A lot of work has gone into the I/O drivers in the runtime, including full rewrites of the {\sc http}, Ames, and terminal drivers.  
+The runtime was broken into two processes, allowing I/O and Arvo event processing to run in parallel.  The event log was moved out of a custom file into an {\sc lmdb} database, then broken up into ``epochs'' allowing for event log rollover and truncation.  The I/O drivers in the runtime have continued to be developed, including full rewrites of the {\sc http}, Ames, and terminal drivers.  
 
 The Ares project, now close to initial deployment, includes a clean-slate rewrite of the Nock interpreter, using an all-new allocator, a novel static analysis technique called Subject Knowledge Analysis to achieve substantial Nock execution speed improvements, and a new persistence module called the Persistent Memory Arena ({\sc pma}), using a copy-on-write B+ tree to keep memory pages synchronized between disk and {\sc ram}.
 
@@ -300,75 +300,73 @@ This system has evolved some in the ensuing few years, but the basic concepts an
 
 \subsection{Clay Static Linking and Deduplication}
 
-TODO: describe Clay tombstoning somewhere
-
 Once users started to have multiple desks with complex applications in them, the Ford build system started to have quite a bit of duplication, where multiple desks would build the exact same library or filetype definition, leading to several copies of common libraries in memory.
 
-Having many copies of the same library in memory is a well-known problem with static linking, which is logically what Ford does to link Hoon programs together.  The linking step is a trivial dynamically typed (``vase-mode'') `cons' operation, since Hoon's variable lookup simply traverses the "subject" (environment) type left-to-right.  Importing a library means prepending that library to the environment.
+Having many copies of the same library in memory is a well-known problem with static linking, which is logically what Ford does to link Hoon programs together.  The linking step is a trivial dynamically typed (``vase-mode'') `cons' operation, since Hoon's variable lookup simply traverses the ``subject'' (environment) type left-to-right.  Importing a library means prepending that library to the environment.
 
 Fortunately, because Urbit supports structural sharing and Ford is a purely functional build system, a referentially transparent cache was added to Ford.  This cache does not know which desk a build is being run in, so it can cache and deduplicate builds across desks seamlessly without losing the logical static linking.
 
 This means Urbit gets the best of both worlds: the sanity of static linking, and the memory deduplication of dynamic linking.
 
+\subsection{Clay Tombstoning}
+
+Besides noun deduplication, Clay has also introduced a tombstoning system.  Files in all revisions before the current one may be ``tombstoned'', meaning that the old data has been deleted and just the reference remains.  Tombstoning policy can be configured for files, directories, etc, so that large files aren't duplicated while full revision history can be retained for other things where it's appropriate.
+
+Tombstoning is not at odds with the referential transparency of scries, since a scry attempt may return \lstinline[style=inlinecode]{[~ ~]}, a permanent scry failure (that resource will never be available).
+
 \subsection{Userspace Permissions}
 
-As users install more applications, it becomes increasingly important for the system to be able to protect itself and other apps from a malicious app.  A basic measure was introduced in 2023 so that a Gall agent can tell which other local agent sent it a command.  This "poke provenance" was enough to prevent certain kinds of confused deputy attacks involving ships delegating some functionality to their moons.
+As users install more applications, it becomes increasingly important for the system to be able to protect itself and other apps from a malicious app.  A basic measure was introduced in 2023 so that a Gall agent can tell which other local agent sent it a command.  This ``poke provenance'' was enough to prevent certain kinds of confused deputy attacks involving ships delegating some functionality to their moons.
 
-For full protection, however, a system of "userspace permissions" is required, where the user must approve an agent's access to kernel features and other applications with some granularity.  Such a system was prototyped in late 2022 and is scheduled for further development and deployment later in 2024.
+For full protection, however, a system of ``userspace permissions'' is required, where the user must approve an agent's access to kernel features and other applications with some granularity.  Such a system was prototyped in late 2022 and is scheduled for further development and deployment later in 2024.
 
 \section{Conclusion}
 
-TODO: decide whether to have one – could try to take the first part of the appendix, perhaps
-
-An appendix to this discussion addresses developments from the whitepaper by section.
-
-\tombstone{}
-
+In conclusion, Urbit has grown to realize many of the promises of the 2016 whitepaper.  The system is more reliable, more scalable, more extensible, and more secure than it was then.  The network has grown to include thousands of users, and the system is now capable of supporting a much larger userbase.  While more work remains to be done, the kernel of Urbit is sound and the contours of the kelvin-cooled system have begun to assume more resolution.  \tombstone{}
 
 \section{Appendix}
 
-TODO: organize better
+This appendix addresses developments from the whitepaper by section.  While this is somewhat narratively unsatisfactory, it provides an easy reference.  In cases where no significant changes have been made, the section has been elided.
 
-Accessing Urbit's namespace as a {\sc fuse} filesystem still has not been implemented.  Some of the whitepaper was written in the "prophetic present tense", and while a lot of those prophecies have come true, that one remains aspirational.
+Accessing Urbit's namespace as a {\sc fuse} filesystem still has not been implemented.  Some of the whitepaper was written in the ``prophetic present tense'', and while a lot of those prophecies have come true, that one remains aspirational.
 
 Web2 interoperability (TODO: quote the whitepaper) has been partially superseded by Web3 interoperability.  In 2016 Web3 barely existed, but in 2024 it's a relatively established industry.  Over the last two years there's been broadening acceptance of Urbit's complementary nature to blockchains. 
 
 Web3 is based on the idea of individual sovereignty: open entry and permissionless extensibility.  Blockchains strive to provide these properties for public, global state.  For individual sovereignty over personal and private social computing, something like Urbit is needed.  Web3 has an Urbit-shaped hole.
 
-Urbit is still "neither secure nor reliable", but it is much more reliable than back then.  I estimate about two more "nines" have been added to its uptime percentage.  Error handling has improved dramatically.  Userspace apps can be managed by a user.  The runtime and kernel both clean up after themselves better in several different ways, so crashes due to resource exhaustion are much less common.
+Urbit is still ``neither secure nor reliable'', but it is much more reliable than back then.  We estimate that about two more ``nines'' have been added to its uptime percentage.  Error handling has improved dramatically.  Userspace apps can be managed by a user.  The runtime and kernel both clean up after themselves better in several different ways, so crashes due to resource exhaustion are much less common.
 
 All of the commands that users now lean on for managing resource usage were written after the whitepaper:
-- `|trim` cache pruning
-- `|pack` defragmentation
-- `|meld` deduplication
-- `chop` event log truncation
-- `roll` event log rollover
+\begin{itemize}
+  \item  \lstinline[style=inlinecode]{|trim} cache pruning
+  \item  \lstinline[style=inlinecode]{|pack} defragmentation
+  \item  \lstinline[style=inlinecode]{|meld} deduplication
+  \item  \lstinline[style=inlinecode]{chop} event log truncation
+  \item  \lstinline[style=inlinecode]{roll} event log rollover
+\end{itemize}
 
-Nock's changes going from 5K to 4K resulted from `~fodwyt-ragful`'s bytecode interpreter in 2018.  There were three changes.
+Nock's changes going from 5K to 4K resulted from \patp{fodwyt-ragful}'s bytecode interpreter in 2018.  Three changes were made:
 
-The Nock 5 equality check opcode was tweaked to enforce taking two subexpressions, rather than optionally taking a single expression that could return a cell (pair), whose head and tail would then be compared for equality.  This optionality turned out to be annoying when writing an interpreter, and it provided little utility.
+\begin{enumerate}
+  \item  The Nock 5 equality check opcode was tweaked to enforce taking two subexpressions, rather than optionally taking a single expression that could return a cell (pair), whose head and tail would then be compared for equality.  This optionality turned out to be annoying when writing an interpreter, and it provided little utility.
+  \item  Nock version 4 added a new Nock 10 opcode to replace part of a tree with a new value.  Creating mutant trees like this is a basic operation that Hoon code performs regularly, using the \lstinline[style=inlinecode]{%=} rune (TODO: should that be centar?) and its variants (\lstinline[style=inlinecode]{%*}, \lstinline[style=inlinecode]{%_}, \lstinline[style=inlinecode]{=.}, and \lstinline[style=inlinecode]{=:}).  Before the addition of the Nock 10 opcode, the Hoon compiler would use the type of the trees involved in a mutation expression to codegen a tuple of Nock ``auto-cons'' expressions (cells of expressions that return cells of their results) that would reconstruct the mutant tree out of the new subtree cons'd together with the remaining pieces of the original tree.
+  
+  This had a few problems.  It allocated more Nock cells at runtime than needed.  It prevented the interpreter from optimizing in-place mutation of a noun with a reference count of one.  If no one else is looking, creating a mutant copy can be done by overwriting the noun in-place and nobody can tell on you.  APL interpreters, which have a similar memory model to Nock nouns, usually include this optimization, and Urbit's current runtime does as well.
 
-Nock version 4 added a new Nock 10 opcode to replace part of a tree with a new value.  Creating mutant trees like this is a basic operation that Hoon code performs regularly, using the `%=` rune (TODO: should that be centar?) and its variants (`%*`, `%_`, `=.`, and `=:`).  Before the addition of the Nock 10 opcode, the Hoon compiler would use the type of the trees involved in a mutation expression to codegen a tuple of Nock "auto-cons" expressions (cells of expressions that return cells of their results) that would reconstruct the mutant tree out of the new subtree cons'd together with the remaining pieces of the original tree.
+  \item  A tertiary benefit to adding Nock 10 was that the calling convention for ``slamming a gate'' (providing an argument to an anonymous function and running the function's body) could now be expressed in statically generated Nock code without needing to invoke the Hoon compiler.  This allowed a bit of additional expressivity in some Hoon standard library routines that call into untyped Nock.
+\end{enumerate}
 
-This had a few problems.  It allocated more Nock cells at runtime than needed.  It prevented the interpreter from optimizing in-place mutation of a noun with a reference count of one.  If no one else is looking, creating a mutant copy can be done by overwriting the noun in-place and nobody can tell on you.  APL interpreters, which have a similar memory model to Nock nouns, usually include this optimization, and Urbit's current runtime does as well.
-
-A tertiary benefit to adding Nock 10 was that the calling convention for "slamming a gate" (providing an argument to an anonymous function and running the function's body) could now be expressed in statically generated Nock code without needing to invoke the Hoon compiler.  This allowed a bit of additional expressivity in some Hoon standard library routines that call into untyped Nock.
-
-Hoon has grown, unfortunately.  There have been two or three revisions of syntax and type system.  The latest change was adding "doccords", a form of docstring, to the syntax.
-
-Parsing and compiling are still slow, unfortunately, but there have been massive performance improvements to Hoon compilation, especially in memory usage.  In 2017 compiling kernelspace would use around a gigabyte of {\sc ram}; now it uses on the order of a hundred megabytes.  Reducing this memory pressure alleviated a lot of crashes from out-of-memory errors ("bail:meme" errors) – it was a major contributor to the increase in overall reliability.
+Parsing and compiling are still slow, unfortunately, but there have been massive performance improvements to Hoon compilation, especially in memory usage.  In 2017 compiling kernelspace would use around a gigabyte of {\sc ram}; now it uses on the order of a hundred megabytes.  Reducing this memory pressure alleviated a lot of crashes from out-of-memory errors (\lstinline[style=inlinecode]{bail:meme} errors) – it was a major contributor to the increase in overall reliability.
 
 The Udon and Sail domain-specific languages were added to Hoon, for markdown-like rich text and XML/HTML, respectively.  There is a tentative consensus among core developers that these DSLs should be kicked up a layer out of the base Hoon language, but making Hoon syntax recursively extensible likely requires splitting out the definition of the Hoon AST into a recursion scheme, which is nontrivial.
 
-Hoon's recent changes have reduced the prevalence of the "TMI problem".  Since Hoon's type system supports subtyping, it is common for code to fail to compile due to having "too much information" (TMI) – sometimes a more specific type cannot be used in place of a more general one, namely when that type is in "contravariant position".
+Hoon's recent changes have reduced the prevalence of the ``{\sc tmi} problem''.  Since Hoon's type system supports subtyping, it is common for code to fail to compile due to having ``too much information'' ({\sc tmi}) – sometimes a more specific type cannot be used in place of a more general one, namely when that type is in ``contravariant position''.  For example, if the type of some field in the Hoon subject was a list but got specialized in a conditional branch to be a non-null list, attempting to ``overwrite'' (really, create a mutant copy of) that field in the subject with a normal list, the compiler will throw a type error because it cannot guarantee that the normal list is not null.  If the compiler did not know the subject's list field was non-null, then overwriting it with some other list would just.work.  Almost always, the eventual result of the expression admits a null list, so the type error is an annoyance rather than an assurance.
 
-For example, if the type of some field in the Hoon subject was a list but got specialized in a conditional branch to be a non-null list, attempting to "overwrite" (really, create a mutant copy of) that field in the subject with a normal list, the compiler will throw a type error because it cannot guarantee that the normal list is not null.  If the compiler did not know the subject's list field was non-null, then overwriting it with some other list would just.work.  Almost always, the eventual result of the expression admits a null list, so the type error is an annoyance rather than an assurance.
+Hoon type system changes have also included multiple attempts at resolving another difficulty with subtyping: ``wetness''.  A ``wet core'' is a Hoon core (pair of code and data, where the code is run using the whole core as the subject) with a ``sample'' (argument slot – the head of the ``data'' tail by convention in the type system) whose type can vary.  This is very closely related to the mathematical idea of parametric polymorphism.  Like in many languages (including Haskell), Hoon does not strictly guarantee ``parametricity'', but wetness is used to implement parametrically polymorphic functions and even type constructors (called ``mold builders'' in Hoon).
 
-Hoon type system changes have also included multiple attempts at resolving another difficulty with subtyping: "wetness".  A "wet core" is a Hoon core (pair of code and data, where the code is run using the whole core as the subject) with a "sample" (argument slot – the head of the "data" tail by convention in the type system) whose type can vary.  This is very closely related to the mathematical idea of parametric polymorphism.  Like in many languages (including Haskell), Hoon does not strictly guarantee "parametricity", but wetness is used to implement parametrically polymorphic functions and even type constructors (called "mold builders" in Hoon).
+Wetness has an issue where the ``faces'' (names for particular slots within the tree) in the sample type in the definition of the wet core can differ from the faces in the sample type at any given call site.  Deciding which of those faces to use in the body of the code is a subtle, thorny problem.  The Hoon at the time of the whitepaper had one solution; another was written afterward, around 2017; a third was deployed in 2019.  This last one, called ``repainting'', is generally thought to be the right strategy, but its implementation remains unfinished in 2024 – it has an issue where the precedence of call-site vs. definition-site face names is not preserved under recursion.  This issue will need to be fixed before we can say the right answer to this issue has been achieved.
 
-Wetness has an issue where the "faces" (names for particular slots within the tree) in the sample type in the definition of the wet core can differ from the faces in the sample type at any given call site.  Deciding which of those faces to use in the body of the code is a subtle, thorny problem.  The Hoon at the time of the whitepaper had one solution; another was written afterward, around 2017; a third was deployed in 2019.  This last one, called "repainting", is generally thought to be the right strategy, but its implementation remains unfinished in 2024 – it has an issue where the precedence of call-site vs. definition-site face names is not preserved under recursion.  This issue will need to be fixed before we can say the right answer to this issue has been achieved.
-
-Wetness in general is an interesting and novel approach to both polymorphic and recursive types, both of which are directly represented as lazily evaluated types (Urbit core devs often call the "evaluation" step "type inference" informally, but it corresponds to the "type synthesis" direction of a bidirectional typechecker in type theory terminology).  This has pros and cons.
+Wetness in general is an interesting and novel approach to both polymorphic and recursive types, both of which are directly represented as lazily evaluated types (Urbit core devs often call the ``evaluation'' step ``type inference'' informally, but it corresponds to the ``type synthesis'' direction of a bidirectional typechecker in type theory terminology).  This has pros and cons.
 
 On one hand, this representation allows for more expressivity than many comparable type systems at around the same spot on Barendregt's lambda cube (λω: types and values can both depend on types).  For example, the \lstinline[style=inlinecode]{$_} rune allows the programmer to declare the type of one expression in terms of the return type of any other expression, without that expression ever needing to be run, only ``type-inferred'' (synthesized).  This is very convenient for programs that return modified versions of themselves, which is ubiquitous in Urbit.
 
@@ -380,9 +378,9 @@ The formal Arvo boot sequence as described in the whitepaper was not implemented
 
 Meanwhile, in userspace, the \lstinline[style=inlinecode]{%spider} agent was added, to run a new kind of userspace program: a \lstinline[style=inlinecode]{%thread}.  This is not a separate processor thread of execution, but rather a system of monadic IO based heavily on Haskell's IO monad.  Unlike agents, which are designed to allow a programmer to implement multiple long-lived asynchronous operations concurrently using non-blocking IO, a thread is designed for building a linear sequence of asynchronous operations, more akin to a coroutine.
 
-Arvo's "duct" as a reified vane call stack is still very much in use.  The patterns of use have evolved somewhat.  It is now much more common for vanes to use "synthetic ducts" as the origins of certain operations to disconnect them from their cause.
+Arvo's ``duct'' as a reified vane call stack is still very much in use.  The patterns of use have evolved somewhat.  It is now much more common for vanes to use ``synthetic ducts'' as the origins of certain operations to disconnect them from their cause.
 
-For example, Ames uses a synthetic duct for each "flow" (Ames's version of a socket connection) to set packet re-send timers for that flow and pass requests to other vanes.  This disconnects the flow's duct from the duct that the runtime used to inject the event into Arvo, preventing Unix process restarts from causing desynchronization.
+For example, Ames uses a synthetic duct for each ``flow'' (Ames's version of a socket connection) to set packet re-send timers for that flow and pass requests to other vanes.  This disconnects the flow's duct from the duct that the runtime used to inject the event into Arvo, preventing Unix process restarts from causing desynchronization.
 
 As another example, Gall now uses a per-agent synthetic duct for the moves coming out of that agent.  Note that this approach has a known flaw, where if an agent sets a timer in response to hearing a request from another ship, it needs to remember that ship in order to obtain the same duct to cancel the timer.  XX this doesn't make sense – how does the timer get into the wire?
 
@@ -390,29 +388,27 @@ The dotket rune (`.^`) no longer blocks until complete.  Because the agent model
 
 This shift reflects a subtler attitude shift toward being more wary about asynchronicity.  Earlier Urbit designs were bolder about introducing asynchronous operations; more modern ones treat asynchronous operations as complex and bug-prone, to be avoided if possible.  This shift has come from experience – it is surprising to find race conditions in a single-threaded, purely functional operating system, but we have found and fixed plenty over the years.  
 
-The whitepaper says "most data is now in Clay".  This is no longer true.  Now most data lives in Gall, in agents.  Clay has proven difficult to use for storing application data for a number of reasons, and Gall has become more featureful.  There is consensus among the core devs that a better userspace model should be devised to unify Clay and Gall.  One such model, called "shrubbery", is now being investigated.
+The whitepaper says ``most data is now in Clay''.  This is no longer true.  Now most data lives in Gall, in agents.  Clay has proven difficult to use for storing application data for a number of reasons, and Gall has become more featureful.  There is consensus among the core devs that a better userspace model should be devised to unify Clay and Gall.  One such model, called ``shrubbery'', is now being investigated.
 
-Urbit is still a non-preemptive OS, but it could be made preemptive by letting the kernel emit a Nock hint to the runtime to enforce a time limit on the enclosed computation.  If it failed to complete within the given time limit, the runtime would abort the entire Arvo event.  This would be considered a nondeterministic error ("bail:fail"), like a user-initiated event interruption (Ctrl-C).  This could potentially even be used to turn Urbit into a real-time OS.
+Urbit is still a non-preemptive OS, but it could be made preemptive by letting the kernel emit a Nock hint to the runtime to enforce a time limit on the enclosed computation.  If it failed to complete within the given time limit, the runtime would abort the entire Arvo event.  This would be considered a nondeterministic error (\lstinline[style=inlinecode]{bail:fail}), like a user-initiated event interruption (Ctrl-C).  This could potentially even be used to turn Urbit into a real-time OS.
 
-## Section 2.4 Philosophy of Ames Networking
+\paragraph{3.1 Uniform Persistence}
 
-The philosophy behind the Ames networking system is still accurate despite multiple Ames rewrites and the move onto a blockchain.
+Significant work has gone into improving the runtime's implementation of uniform persistence:
+\begin{itemize}
+  \item  demand paging to allow storage of more data on disk than fits in {\sc ram}
+  \item  a guard page to efficiently prevent stack smashing
+  \item  a snapshot migration framework to facilitate upgrades
+  \item  separating ephemeral and persistent state to avoid extraneous disk writes
+  \item  using the {\sc lmdb} database for the event log, instead of a custom binary file
+  \item  the Ares project's Persistent Memory Arena ({\sc pma}), a general-purpose single-level store that can efficiently manage the persistence and paging for 64 terabytes of data, using a copy-on-write B+ tree
+  \item  the ``epoch system'', which broke the event log into epochs, allowing event log rollover and truncation
+  \item  persistent Nock caches, allowing arbitrary computations to be memoized in the runtime in a way that persists across Arvo events and Unix process restarts
+\end{itemize}
 
-## Section 3.1 Uniform Persistence
+\paragraph{3.2 Source-Independent Networking}
 
-This section is still true.  A lot of work has gone into improving the runtime's implementation of uniform persistence:
-- demand paging to allow storage of more data on disk than fits in {\sc ram}
-- a guard page to efficiently prevent stack smashing
-- a snapshot migration framework to facilitate upgrades
-- separating ephemeral and persistent state to avoid extraneous disk writes
-- using the {\sc lmdb} database for the event log, instead of a custom binary file
-- the Ares project's Persistent Memory Arena ({\sc pma}), a general-purpose single-level store that can efficiently manage the persistence and paging for 64 terabytes of data, using a copy-on-write B+ tree
-- the "epoch system", which broke the event log into epochs, allowing event log rollover and truncation
-- persistent Nock caches, allowing arbitrary computations to be memoized in the runtime in a way that persists across Arvo events and Unix process restarts
-
-## Section 3.2 "Source-Independent Networking"
-
-Ames is still sequential and idempotent for commands.  Despite having been described as "content-centric" and "source-independent" in the whitepaper, those two properties are only now being realized, in the "directed messaging" project that is currently underway.  Directed messaging refactors Ames to be much more like the Named Data Networking project: packets and messages are both constrained to be request/response, with routing being achieved using a Pending Interest Table just like in NDN.
+Ames is still sequential and idempotent for commands.  Despite having been described as ``content-centric'' and ``source-independent'' in the whitepaper, those two properties are only now being realized, in the ``directed messaging'' project that is currently underway.  Directed messaging refactors Ames to be much more like the Named Data Networking project: packets and messages are both constrained to be request/response, with routing being achieved using a Pending Interest Table just like in {\sc ndn}.
 
 Directed messaging supports network reads in the form of namespace reads.  A ship can send a network request to read from another ship's namespace.  The requesting ship sends request packets containing a scry path, and the publishing ship responds with an authenticated scry binding: a pair of the path and the data bound to that path. 
 
@@ -421,136 +417,120 @@ Network writes (commands) are factored in terms of reads: a write request is sen
 As an optimization, the requesting ship places the first fragment of the command datum in the first request packet it sends.  In the common case of a 1KB command datum, the entire command+ack interaction consists of a single packet roundtrip.
 
 This is only the latest in a series of changes that have been made to Ames since the whitepaper:
-- it is now backed by Azimuth, on the blockchain
-- it supports personal continuity breaches
-- "stateless forwarding" brought orders of magnitude more scalability
-- the \lstinline[style=inlinecode]{%clog} backpressure system was added to prevent unbounded packet queueing on publisher ships; this was later tuned for better performance
-- flows can now be closed, so their memory resources can be reclaimed
-- "dead flow consolidation": outbound requests to unresponsive ships now share one global timer every two minutes, dramatically reducing the number of Arvo events
-- the \lstinline[style=inlinecode]{%flub} system was added to close a DoS vulnerability: the system can drop incoming requests until it is ready to process them, without any queueing
-- the \lstinline[style=inlinecode]{|snub} and \lstinline[style=inlinecode]{|ruin} commands were added to allow manual blacklisting of peers
-- network reads have been implemented
-  - the Fine remote scry protocol
-  - the \lstinline[style=inlinecode]{%chum} one-to-one encrypted remote scry protocol
-  - the one-to-many encrypted remote scry protocol
+\begin{itemize}
+  \item  it is now backed by Azimuth, on the blockchain
+  \item  it supports personal continuity breaches
+  \item  ``stateless forwarding'' brought orders of magnitude more scalability
+  \item  the \lstinline[style=inlinecode]{%clog} backpressure system was added to prevent unbounded packet queueing on publisher ships; this was later tuned for better performance
+  \item  flows can now be closed, so their memory resources can be reclaimed
+  \item  ``dead flow consolidation'': outbound requests to unresponsive ships now share one global timer every two minutes, dramatically reducing the number of Arvo events
+  \item  the \lstinline[style=inlinecode]{%flub} system was added to close a DoS vulnerability: the system can drop incoming requests until it is ready to process them, without any queueing
+  \item  the \lstinline[style=inlinecode]{|snub} and \lstinline[style=inlinecode]{|ruin} commands were added to allow manual blacklisting of peers
+  \item  network reads have been implemented
+  \begin{itemize}
+    \item  the Fine remote scry protocol
+    \item  the \lstinline[style=inlinecode]{%chum} one-to-one encrypted remote scry protocol
+    \item  the one-to-many encrypted remote scry protocol
+  \end{itemize}
+\end{itemize}
 
-## Section 3.4 Interruption, etc.
+\paragraph{3.4 Interruption, etc.}  There are still no worker threads, but a potential strategy has been devised for them, and the Ares {\sc pma} should support parallel execution.  There are still no event timeouts, but we do not expect them to be difficult to implement.
 
-There are still no worker threads, but a potential strategy has been devised for them, and the Ares {\sc pma} should support parallel execution.
+\paragraph{3.5 Solid-State Interpreter}  While there is not yet a unikernel, a specification has been written for one.  There is no Raft cluster but the \lstinline[style=inlinecode]{%phoenix} app now uses encrypted remote scry to back up application state.  There have also been proposals to use FoundationDB to replicate event log storage.
 
-There are still no event timeouts, but we do not expect them to be difficult to implement.
-
-## Section 3.5 Solid-State Interpreter
-
-There is still no unikernel, but a spec has been written for one.  There is no Raft cluster yet, but the \lstinline[style=inlinecode]{%phoenix} app now uses encrypted remote scry to back up application state.  There have also been proposals to use FoundationDB to replicate the event log storage.
-
-## 4.2 Larval State
+\paragraph{4.2 Larval State}
 
 This section is still applicable.  Arvo still has a larval stage, and it does more or less the same thing.
 
 The ``bring your own boot system'' work, which has been built but not deployed, will allow a user to assemble a boot sequence out of kernel source and a list of userspace desks (app source packages).  This could also be used to facilitate ``quickboot''.  Nock caches could be injected into the runtime along with kernel or app source.  These caches could contain all invocations of the Hoon parser and compiler, reducing boot time to well under a second on common machines.
 
-4.3 Step Model
+\paragraph{5.1 Nouns}  The Murmur3 system was aspirational but has been subsequently realized.  A few years ago, a horrendous bug was found and fixed in the ``mug'' short hash for cells:  the algorithm was symmetric, so \lstinline[style=inlinecode]{[1 0]} hashed to the same value as \lstinline[style=inlinecode]{[0 1]}.  This led to far more hash collisions than there should have been, degrading the asymptotics of a number of data structures.
 
-This model is still in effect.
+\paragraph{6.3 Nock Optimization}  The ``jet dashboard'' (the module in the runtime responsible for registering, matching, and running jets) has been rewritten multiple times.  \patp{fodwyt-ragful} has proposed a jet dashboard that would match Nock formulas on the basis of noun equality rather than matching Nock cores (a code/data pair used as the unit of code organization) while ignoring mutable slots, the way the previous ones have worked.  This would have the advantage of simplicity, but it could be more difficult to implement more complex pieces of code, such as closures.
 
-TODO Is \lstinline[style=inlinecode]{%lick} a step or a packet? ask ~mopfel
-
-## 5.1 Nouns
-
-The Murmur3 system was aspirational in the whitepaper, but was subsequently realized.  A few years ago, a horrendous bug was found and fixed in the ``mug'' short hash for cells:  the algorithm was symmetric, so \lstinline[style=inlinecode]{[1 0]} hashed to the same value as \lstinline[style=inlinecode]{[0 1]}.  This led to far more hash collisions than there should have been, degrading the asymptotics of a number of data structures.
-
-## Section 6.3 Nock Optimization
-
-The ``jet dashboard'' (the module in the runtime responsible for registering, matching, and running jets) has been rewritten multiple times since the whitepaper.  \patp{fodwyt-ragful} has a proposal for a jet dashboard that would match Nock formulas on a noun equality basis, rather than matching Nock cores (a code/data pair used as the unit of code organization) while ignoring mutable slots, the way the previous ones have worked.  This would have the advantage of simplicity, but it could be more difficult to implement more complex pieces of code, such as closures.
-
-The Ares project has another new approach to jet matching, which is to resolve the matching statically during a transpilation step from Nock to a more optimized representation.  This is facilitated by a novel static analysis technique for Nock, called Subject Knowledge Analysis, which analyzes the data dependencies within a Nock formula, allowing inference about the tree shape of the ``subject'' (environment, or scope) at different points of the computation.
-
-This should allow for more efficient registerization of intermediate values, and it also provides enough information to statically compute whether a jet will match.  The goal is that Ares will convert a hot loop in Nock into similar machine code that would be emitted by a C compiler, including direct jumps back to the start of the loop.
+The Ares project has another new approach to jet matching, which is to resolve the matching statically during a transpilation step from Nock to a more optimized representation.  This is facilitated by a novel static analysis technique for Nock, called Subject Knowledge Analysis ({\sc ska}), which analyzes the data dependencies within a Nock formula, allowing inference about the tree shape of the ``subject'' (environment, or scope) at different points of the computation.  {\sc ska} should allow for more efficient registerization of intermediate values, and will also provide enough information to statically compute whether a jet will match.  The goal is for Ares to convert a hot loop in Nock into similar machine code that would be emitted by a C compiler, including direct jumps back to the start of the loop.
 
 The Rust interpreter project mentioned in the whitepaper is dead, but in the meantime several other interpreters have been written:
-- Jaque, written using the Graal/Truffle JIT framework
-- NockJS, an interpreter in JavaScript that uses trampolining
-- cl-urbit, a Common Lisp interpreter used as a jet dashboard testbed
-- Ares, written in Rust and C, intended as the next mainline interpreter version
+
+\begin{enumerate}
+  \item  Jaque, written using the Graal/Truffle {\sc jit} framework;
+  \item  NockJS, an interpreter in JavaScript that uses trampolining;
+  \item  \texttt{cl-urbit}, a Common Lisp interpreter used as a jet dashboard testbed; and
+  \item  Ares, written in Rust and C, intended as the next mainline interpreter version.
+\end{enumerate}
 
 In 2019, a custom Nock bytecode was written and deployed.  This was so much faster than the old tree-walking interpreter that we were able to delete tens of thousands of lines of C code that jetted the Hoon compiler.  Until then, the Hoon compiler was almost entirely jetted, since the Nock interpretation overhead was so bad.  Since then, the allocator and Nock function calls have been slow, but the speed of Nock noun manipulation has been comparable to manual manipulation in C.
 
 An interesting optimization that was added to Vere more recently is called ``tail-call modulo cons'', allowing recursive loops that are almost tail-recursive to be optimized as if they are tail-recursive, as long as the only operation that happens after each recursive call is a ``cons'' that prepends or appends another value to the result of the recursion.
-XX link to paper about tail-call modulo cons
+TODO link to paper about tail-call modulo cons
 
 Another optimization, introduced with the bytecode interpreter and refined recently, was to optimize the Nock 10 opcode that overwrites a slot in a tree.  In the case that there is only one reference to the tree being modified, the mutation can be performed in-place, by overwriting memory, rather than by allocating a new mutant tree and then decrementing the refcount on the old one.
 
-## 6.5 Transition Function
+\paragraph{6.5 Transition Function}
 
-The whitepaper mentions off-handedly that Nock could not be replaced.  While the author does not expect Nock to be changed, much less replaced, this could be done if needed.  The implementation is left as an exercise for the reader.
+The whitepaper mentions off-handedly that Nock could not be replaced.  While this author does not expect Nock to be changed, much less replaced, this could be done if needed.  Such implementation is left as an exercise for the reader.
 
-## 7.1 Hoon Semantics
+\paragraph{7.1 Hoon Semantics}
 
-\lstinline[style=inlinecode]{$span} and \lstinline[style=inlinecode]{$twig} have been renamed, but this may be reverted at some point.  (Most core devs prefer the older names.)
+Hoon has grown, but the semantics have largely remained intact.  \lstinline[style=inlinecode]{$span} and \lstinline[style=inlinecode]{$twig} have been renamed, but this may be reverted at some point.  (Most core devs prefer the older names.)  Core types have ``chapters'' added to them, mostly for documentation purposes.
 
-Core types have ``chapters'' added to them, mostly for documentation purposes.
+Head recursion still requires a cast in Hoon.  The compiler can go into an infinite loop if given malformed input.  Interestingly, of all the challenges experienced by Hoon developers, this has turned out not to be a severe issue in practice.  (Future language designers take note:  needing to hit Ctrl-C if your compilation takes a lot longer than normal is not a show stopper.)
 
-Head recursion still requires a cast in Hoon.  The compiler can still go into an infinite loop if you give it malformed input.  Interestingly, of all the problems Hoon developers experience, this turns out not to be a severe issue in practice.  Future language designers take note: needing to hit Ctrl-C if your compilation takes a lot longer than normal is not a show stopper.
+\paragraph{7.2 Type Definition}
 
-## 7.2 Type Definition
+All of the whitepaper's high-level claims about Hoon are still true, but a few changes to mold (type) declaration and the scope of the language's keyword equivalent (runes) has been expanded.\footnote{We consider the growth in Hoon to be somewhat unfortunate, and envision that it eventually slims back down somewhat as it is refined.}  There have been two or three revisions of syntax and type system.  The latest change added ``doccords'', a form of docstring, to the syntax.
 
 The syntax for declaring molds has changed, and as of the last major revision to the mold system in 2019, it is now possible to add a predicate gate to a mold definition that will be run whenever the derived mold function (``gate'') is run to coerce a raw noun into a noun of that type.  This is useful for ingesting data that has constraints other than tree shape, such as the ordering of keys in a map.
 
-The following runes have been added:
-- \lstinline[style=inlinecode]{!<}
-- \lstinline[style=inlinecode]{;<}
-- \lstinline[style=inlinecode]{|@}
-- \lstinline[style=inlinecode]{|$}
-- \lstinline[style=inlinecode]{#/}
-- \lstinline[style=inlinecode]{?#}
-- \lstinline[style=inlinecode]{+*}
-- \lstinline[style=inlinecode]{=*}  XX or was this already there
-- \lstinline[style=inlinecode]{+$}
-- \lstinline[style=inlinecode]{$~}
-- \lstinline[style=inlinecode]{^~}
-- \lstinline[style=inlinecode]{$|}
-- \lstinline[style=inlinecode]{$>}
-- \lstinline[style=inlinecode]{$<}
-- \lstinline[style=inlinecode]{$:}
+A number of runes have been added to Hoon:
+
+\begin{enumerate}
+  \item  \lstinline[style=inlinecode]{!<} zapgal
+  \item  \lstinline[style=inlinecode]{;<} micgal
+  \item  \lstinline[style=inlinecode]{|@} barpat
+  \item  \lstinline[style=inlinecode]{|$} barbuc
+  \item  \lstinline[style=inlinecode]{#/} haxfas TODO
+  \item  \lstinline[style=inlinecode]{?#} wuthax (still experimental)
+  \item  \lstinline[style=inlinecode]{+*} lustar
+  \item  \lstinline[style=inlinecode]{+$} lusbuc
+  \item  \lstinline[style=inlinecode]{$~} bucsig
+  \item  \lstinline[style=inlinecode]{^~} tissig
+  \item  \lstinline[style=inlinecode]{$|} bucbar
+  \item  \lstinline[style=inlinecode]{$>} bucgar
+  \item  \lstinline[style=inlinecode]{$<} bucgal
+  \item  \lstinline[style=inlinecode]{$:} bucmic
+\end{enumerate}
 
 The canonical pronunciations for syllables was changed in 2019, then reverted due to effectively unanimous demand.  The one modification that persisted was the change of \lstinline[style=inlinecode]{;} from `sem' to `mic', since `sem' sounded too close to 'cen' (\lstinline[style=inlinecode]{%}).
 
-The Hoon type system used to use an idempotence check when coercing a raw noun into a typed noun.  XX why?  As of the 2019 type system revision, that check has been removed, and the mold gate will crash (zapzap) if the noun fails to validate.
+The Hoon type system used to use an idempotence check when coercing a raw noun into a typed noun.  XX why?  As of the 2019 type system revision, that check has been removed, and the mold gate will crash (\lstinline[style=inlinecode]{!!} zapzap) if the noun fails to validate.
 
-The most important thing to note about this section is this: all of the whitepaper's high-level claims about Hoon are still true.
+\paragraph{8.1 Arvo Kernel Interface}  Arvo's \lstinline[style=inlinecode]{+peek} arm is employed much more than it used to be, since we make heavier use of the namespace, and because as Urbit matures, the runtime needs to do more inspection of the Arvo state.
 
-## Section 8.1 Arvo Kernel Interface
+The ``wires'' (request identifier paths) that Vere uses were cleaned up to share the same conventions and match the name of the target vane.
 
-This is still true.  We use Arvo's `+peek` arm a lot more than we used to, since we are making heavier use of the namespace, and because as Urbit matures, the runtime needs to do more inspection of the Arvo state.
-
-The "wires" (request identifier paths) that Vere uses got cleaned up a few years ago, so now they all share the same conventions and match the name of the target vane.
-
-## Section 8.2 Arvo Kernel Modules
-
-The whitepaper mentions vane routing using the first letter of the vane.  This is now specialized to the standard vanes, and new vanes can be added that have an arbitrary number of letters, although four-letter vane names remain standard.  This allows for an arbitrary number of vanes, not 26 maximum.
+\paragraph{8.2 Arvo Kernel Modules}  Vane routing has long used only the first letter of the vane; this is now specialized to the standard vanes, and new vanes can be added that have an arbitrary number of letters, although four-letter vane names remain standard.  This allows for an arbitrary number of vanes, not 26 maximum.
 
 The vanes have changed quite a bit since the whitepaper was written.  No vane has remained untouched.
-- Ames (p2p networking) was rewritten twice.
-- Behn (timers) was added, rewritten, and then heavily modified.
-- Clay (revision control) has undergone several major transformations.
-- Dill (terminal interaction) has been rewritten.
-- Eyre ({\sc http}) was rewritten and its {\sc http} client functionality was split into a new vane, Iris, leaving Eyre as just the server side.
-- Ford (build system for Hoon), was written, rewritten, and finally moved into Clay.
-- Gall (application runner) has been rewritten and had many major changes made to it.
-- Jael ({\sc pki}) was added for secret management, rewritten to track the {\sc pki}, then modified to work with the {\sc pki} rollup.  
-- Khan (control plane) was added to allow scripting and lifecycle management from Unix.
-- Lick (Unix inter-process communication) was added recently, so Urbit can communicate using nouns with other local Unix processes.
 
-## Section 8.3 Structured Events
+\begin{enumerate}
+  \item  Ames (p2p networking) was rewritten twice.
+  \item  Behn (timers) was added, rewritten, and then heavily modified.
+  \item  Clay (revision control) has undergone several major transformations (discussed elsewhere throughout this article).
+  \item  Dill (terminal interaction) has been rewritten.
+  \item  Eyre ({\sc http}) was rewritten and its {\sc http} client functionality was split into a new vane, Iris, leaving Eyre as just the server side.
+  \item  Ford (build system for Hoon) was written, rewritten, and finally moved into Clay.
+  \item  Gall (application runner) has been rewritten and has had many major changes made to it.
+  \item  Jael ({\sc pki}) was added for secret management, rewritten to track the {\sc pki}, then modified to work with the {\sc pki} rollup.
+  \item  Khan (control plane) was added to allow scripting and lifecycle management from Unix.
+  \item  Lick (Unix inter-process communication) was added recently, so Urbit can communicate using nouns with other local Unix processes.
+\end{enumerate}
 
-Depth-first move ordering is being revised, as described in more detail in an earlier section.
+\paragraph{8.3 Structured Events}  Depth-first move ordering is being revised, as described in more detail in an earlier section.
 
-The whitepaper mentions it is "not conventional" in Urbit to use promises.  \lstinline[style=inlinecode]{%spider} threads are now a major exception to this.  Threads are all killed on upgrade to prevent leaking the old kernel inside the closures.
+The whitepaper mentions it is ``not conventional'' in Urbit to use promises.  \lstinline[style=inlinecode]{%spider} threads are now a major exception to this.  Threads are all killed on upgrade to prevent leaking the old kernel inside the closures.
 
-## Section 8.4 Security Mask
-
-"Arvo is single-homed", says the whitepaper.  This was then changed to multi-homed to support onboarding as a comet and upgrading to a planet, then removed again when going on-chain.
+\paragraph{8.4 Security Mask}  ``Arvo is single-homed'' per the whitepaper.  This property was subsequently changed to multi-homed to support onboarding as a comet and upgrading to a planet, then removed again when Azimuth was put on-chain.
 
 The security mask is just now starting to be enforced by the vanes.  This was necessitated by the \lstinline[style=inlinecode]{%chum} one-to-one encrypted remote scry protocol.  Agent provenance was added to pokes, so an agent now knows which local agent poked it.
 
@@ -558,146 +538,119 @@ This represents a shift in thinking among core devs.  Rather than a more monolit
 
 The security mask model is not expressive enough to encode the idea of a private group with a dynamically calculated set of participants.  This was needed for the one-to-many encrypted remote scry protocol, since otherwise an app would need to fully materialize the set of allowed peers whenever it published a piece of data.  The computational cost of this would have superlinear asymptotics, which was deemed unacceptable at the base layer.
 
-Instead, the encrypted remote system has its own separate concept of a "security domain" as a path prefix, and the kernel performs a dynamic query when a peer asks for access to private data with that prefix.  While the performance is not a direct comparison with the security mask solution, the dynamic query can typically be implemented in logarithmic time by the application, e.g. a binary search through a Hoon \lstinline[style=inlinecode]{$map} data structure (a treap).  For more complex permissions models, this approach should scale much better.
+Instead, the encrypted remote system has its own separate concept of a ``security domain'' as a path prefix, and the kernel performs a dynamic query when a peer asks for access to private data with that prefix.  While the performance is not a direct comparison with the security mask solution, the dynamic query can typically be implemented in logarithmic time by the application, e.g. a binary search through a Hoon \lstinline[style=inlinecode]{$map} data structure (a treap).  For more complex permissions models, this approach should scale much better.
 
-## Section 9.1 remains unchanged.  XX what was that?
+\paragraph{9.2 Cryptosuite}
 
-## Section 9.2 Cryptosuite
-
-The cryptosuite is still not upgradeable through the initially intended mechanism, where an interface core would be sent to Ames and stored there until a kernel update, when it would need to be deleted and re-sent to avoid leaking the old kernel that would be in the closure of the crypto interface core.  The "new" `crub` cryptosuite core has been in use for several years now, though, with standard cryptographic algorithms jetted by reference implementations.  The Ames cryptosuite currently in use was audited by a security firm in 2020.
+The cryptosuite is still not upgradeable through the initially intended mechanism, where an interface core would be sent to Ames and stored there until a kernel update, when it would need to be deleted and re-sent to avoid leaking the old kernel that would be in the closure of the crypto interface core.  The ``new'' \lstinline[style=inlinecode]{crub} cryptosuite core has been in use for several years now, though, with standard cryptographic algorithms jetted by reference implementations.  The Ames cryptosuite currently in use was audited by a security firm in 2020 \citep{AmesAudit}.
 
 In practice, the Ames protocol has changed a few times since the whitepaper, but the cryptosuite has not.  Allowing the cryptosuite to continue to upgrade after Kelvin zero will probably still need to be implemented, but we have not yet done so.
 
 For simplicity, when going on chain, the Ames protocol key handshake was changed to a stateless Diffie-Hellman key exchange between the public keys listed on chain.  This has the advantage that two ships can start sending encrypted, authenticated packets to each other without any handshake at all.  The downside is that forward secrecy is limited to on-chain key updates, which have a cost, so in practice there is very little forward secrecy.  This will likely be revised in a later protocol version to support better forward secrecy.
 
-With the Directed Messaging rewrite, a new packet authentication protocol has been added, called LockStep.  This protocol is based on the BAO streaming authentication protocol.  Like BAO, it uses the Blake3 tree hash to establish fingerprints for both individual packets and the full message datum.  It differs from BAO in two main ways: it is packet-oriented rather than byte-oriented, and it guarantees that as long as packets are received in order, each packet can be authenticated immediately without waiting for any other packets.
+With the Directed Messaging rewrite, a new packet authentication protocol has been added, called LockStep.  This protocol is based on the {\sc bao} streaming authentication protocol.  Like {\sc bao}, it uses the Blake3 tree hash to establish fingerprints for both individual packets and the full message datum.  It differs from {\sc bao} in two main ways: it is packet-oriented rather than byte-oriented, and it guarantees that as long as packets are received in order, each packet can be authenticated immediately without waiting for any other packets.
 
-The encrypted remote scry protocol also uses the `+crub` cryptosuite with deterministic encryption, but it does have forward secrecy, tunable by each application.
+The encrypted remote scry protocol also uses the \lstinline[style=inlinecode]{+crub} cryptosuite with deterministic encryption, but it does have forward secrecy, tunable by each application.
 
-## Section 9.3 PKI
+\paragraph{9.3 PKI}  Azimuth, the set of Ethereum contracts, replaced the whitepaper's original {\sc pki}.  About two years later, the ``Layer 2'' naive rollup was added to reduce the cost of spawning planets.
 
-Azimuth, the set of Ethereum contracts, replaced the whitepaper's original {\sc pki}.  About two years later, the "layer2" naive rollup was added to reduce the cost of spawning planets.
+``Wills'' and ``deeds'', as described in this section, are no longer part of the system.  8-bit Galaxies, 16-bit stars, and 32-bit planets all have their public keys listed on Ethereum.  A 64-bit moon is assigned its public key by the planet that spawned and owns it, and other ships find the moon's public key by asking the planet.  A 128-bit comet signs its address with its own key, and other ships validate the comet's key by checking that it hashes to the comet's address.  This prevents comets from breaching, but it allows them to self-authenticate without being part of the on-chain {\sc pki}.
 
-"Will"'s and "deed"'s, as described in this section, are no longer part of the system.  8-bit Galaxies, 16-bit stars, and 32-bit planets all have their public keys listed on Ethereum.  A 64-bit moon is assigned its public key by the planet that spawned and owns it, and other ships find the moon's public key by asking the planet.  A 128-bit comet signs its address with its own key, and other ships validate the comet's key by checking that it hashes to the comet's address.  This prevents comets from breaching, but it allows them to self-authenticate without being part of the on-chain {\sc pki}.
+\paragraph{9.4 Update, Routing, and Parental Trust}
 
-## Section 9.4 Update, Routing, and Parental Trust
+Urbit's federated routing system can still be analogized to a combination of {\sc stun} and {\sc turn} approaches to {\sc nat} traversal.
 
-Urbit's federated routing system can still be analogized to a combination of {\sc stun} and TURN approaches to NAT traversal.
+The {\sc stun} protocol is now used explicitly: a sponsee ship sends a {\sc stun} request to its sponsor every twenty-five seconds.  It only sends an Ames command to its sponsor to tell the sponsor it has moved to a new transport address (IPv4 address and port) when the {\sc stun} response changes, indicating that from the perspective of the sponsor, the sponsee is at a new transport address.  A caveat ``from the perspective of the sponsor'' is due to the policies of some routers to expose a different source address for each outgoing destination (``source {\sc nat}'') – if the sponsee is behind a source {\sc nat}, each ship on the network will see a different source address on packets coming from the sponsee.
 
-The {\sc stun} protocol is now used explicitly: a sponsee ship sends a {\sc stun} request to its sponsor every twenty-five seconds.  It only sends an Ames command to its sponsor to tell the sponsor it has moved to a new transport address (IPv4 address and port) when the {\sc stun} response changes, indicating that from the perspective of the sponsor, the sponsee is at a new transport address.  That caveat of "from the perspective of the sponsor" is due to the policies of some routers to expose a different source address for each outgoing destination ("source NAT") – if the sponsee is behind a source NAT, each ship on the network will see a different source address on packets coming from the sponsee.
+With directed messaging, routing is now ``directed'': if ship $A$ sends a request to ship $C$ through $C$'s sponsor $B$, then the request takes the path $A \rightarrow B \rightarrow C$ through the network, and the response takes the reversed path $C \rightarrow B \rightarrow A$.  This is in contrast to all previous versions of Ames, in which the response path will ignore any relays in the request's path and instead get relayed through $A$'s sponsor, in so-called ``criss-cross routing''.
 
-With directed messaging, routing is now "directed": if ship A sends a request to ship C through C's sponsor B, then the request takes the path `A -> B -> C` through the network, and the response takes the reversed path `C -> B -> A`.  This is in contrast to all previous versions of Ames, in which the response path will ignore any relays in the request's path and instead get relayed through A's sponsor, in so-called "criss-cross routing".
+This directedness promises to reduce routing complexity and handle more {\sc nat} configurations, including source {\sc nat}.  It has already proven to reduce complexity in several other layers of the networking stack.
 
-This directedness promises to reduce routing complexity and handle more NAT configurations, including source NAT.  It has already proven to reduce complexity in several other layers of the networking stack.
+As for parental trust, the trend has been toward minimizing the amount a parent needs to be trusted.  Code signing could be done by a consortium of galaxies or other nodes designated with such a task, such as a set of core developer ships.  Urbit's hierarchical deterministic wallet system could require a signature by an upstream key – associated with an Urbit ID but kept ``cold'' by not being used for any other purpose – to authenticate sensitive updates, such as kernel updates.  That way, even if a vulnerability is found that compromises a planet's sponsoring galaxy or star, the planet would validate the signatures by the upstream keys, so that attack on its own would not be enough to load malicious source code onto the planet.
 
-As for parental trust, the trend has been toward minimizing the amount a parent needs to be trusted.  Code signing could be done by a consortium of galaxies or other nodes designated with such a task, such as a set of core developer ships.  Urbit's hierarchical deterministic wallet system could require a signature by an upstream key – associated with an Urbit ID but kept "cold" by not being used for any other purpose – to authenticate sensitive updates, such as kernel updates.  That way, even if a vulnerability is found that compromises a planet's sponsoring galaxy or star, the planet would validate the signatures by the upstream keys, so that attack on its own would not be enough to load malicious source code onto the planet.
-
-There is support in Urbit's standard user interface, Tlon's "landscape" app, for turning kernel updates on and off and switching the download source of kernel source code to any ship the user likes.
+There is support at both the {\sc cli} and in Urbit's standard user interface, Tlon's ``landscape'' app, for turning kernel updates on and off and switching the download source of kernel source code to any ship the user likes.
 
 Userspace apps can be downloaded from any ship on the network, not just the ship's sponsor.  This is another step away from obtaining all software from the parent.  Userspace apps could use the same kind of code signing mechanism described above – which to be clear, is still vaporware as of the time of this writing.
 
-## Section 9.5 Deed Distribution
+\paragraph{9.5 Deed Distribution}  This section is now obsolete except for comets, which as described earlier, are self-signed.  It is worth noting that the double-spend problem inherent in the whitepaper's {\sc pki} design has now been solved, through using a blockchain.
 
-This section is now obsolete except for comets, which as described earlier, are self-signed.
-
-It is worth noting that the double-spend problem inherent in the whitepaper's {\sc pki} design has now been solved, through using a blockchain.
-
-## Section 9.6 Permanent Networking
-
-Urbit's networking is still permanent, but edging toward more flexibility and recoverability.  
+\paragraph{9.6 Permanent Networking}  Urbit's networking is still permanent, but edging toward more flexibility and recoverability.  
 
 Ames flows (Ames's version of socket connections) can now be killed, allowing both participating ships to reclaim memory resources used for storing the sequence numbers and other metadata about that flow.  This is a good example of Urbit doing more to clean up after itself than it did when the whitepaper was written.
 
-The whitepaper reads "brain damage is fatal by default", and "event backup makes no sense", but these claims are no longer considered true.  Various forms of recoverability have been added.  Personal breaches allow a ship to reset its communications with other ships after losing information.  The \lstinline[style=inlinecode]{%phoenix} app lets app state be backed up and restored – if the restoration occurs after a breach, it is heuristic and could be lossy, but apps can be written defensively to maintain as much state as possible across a breach.  Future work will likely push harder on recoverability.
+The whitepaper reads ``brain damage is fatal by default'', and ``event backup makes no sense'', but these claims are no longer considered true.  Various forms of recoverability have been added.  Personal breaches allow a ship to reset its communications with other ships after losing information.  The \lstinline[style=inlinecode]{%phoenix} app lets app state be backed up and restored – if the restoration occurs after a breach, it is heuristic and could be lossy, but apps can be written defensively to maintain as much state as possible across a breach.  Future work will likely push harder on recoverability.
 
 Moving more network activity from writes to reads, through the scry namespace, has been shifting our conception of exactly-once delivery.  It now seems likely that by a year or two from now, Urbit's traditional notion of exactly-once delivery will be opt-in, built on top of the more general substrate of publishing scry bindings.
 
-This requires another vaporware warning, but one could imagine a userspace application sending three poke commands to `~zod` by binding the commands to three paths like `/poke/~zod/foo/1`, `/poke/~zod/foo/2`, and `/poke/~zod/foo/3`, into a subtree of its own scry namespace.  The kernel would ensure `~zod` is notified of those bindings.  `~zod` would download the values at those paths and notify its \lstinline[style=inlinecode]{%foo} application.  The app would interpret the values as a sequence of poke commands, to be applied once and in order.  Once it processes each poke, it would bind an acknowledgment value to a predetermined path in its own namespace, such as `/ack/~nec/1`.  
+This requires another vaporware warning, but one could imagine a userspace application sending three poke commands to `~zod` by binding the commands to three paths like \lstinline[style=inlinecode]{/poke/~zod/foo/1}, \lstinline[style=inlinecode]{/poke/~zod/foo/2}, and \lstinline[style=inlinecode]{/poke/~zod/foo/3}, into a subtree of its own scry namespace.  The kernel would ensure \patp{zod} is notified of those bindings.  \patp{zod} would download the values at those paths and notify its \lstinline[style=inlinecode]{%foo} application.  The app would interpret the values as a sequence of poke commands, to be applied once and in order.  Once it processes each poke, it would bind an acknowledgment value to a predetermined path in its own namespace, such as \lstinline[style=inlinecode]{/ack/~nec/1}.
 
-## Section 9.7 Permanent Applications
-
-Applications are no longer considered permanent, generally.  The current Gall model lets a user suspend an application and revive it later.  Unfortunately the current model is known to be unsound: "signs", i.e. responses to outgoing commands or queries, to a Gall agent are dropped while the agent is suspended, leading to an inconsistent state.
+\paragraph{9.7 Permanent Applications}  Applications are generally no longer considered permanent.  The current Gall model lets a user suspend an application and revive it later.  Unfortunately the current model is known to be unsound: ``signs'', i.e. responses to outgoing commands or queries, to a Gall agent are dropped while the agent is suspended, leading to an inconsistent state.
 
 Future designs for Urbit userspace will likely include a suspension notification for agents.  The kernel also needs to intercept and store all pending I/O in and out of agents, so it can cancel the I/O and let the agent know it was canceled.
 
 This goal is at least somewhat at odds with exactly-once network messaging, since in order for the invariants of exactly-once messaging to hold, the sending agent needs to be delivered the acknowledgment reliably.  If the ack is dropped while the agent is suspended, that could lead to an inconsistent state between the requesting and receiving ships.  
 
-Something namespace-oriented, like the example with poking `~zod` by binding paths in our local namespace, could be more amenable to maintaining exactly-once delivery across suspension and revival without the kernel needing to maintain an unbounded queue of acks to deliver to the agent.  It could also help with recoverability after a breach, since storing userspace data with absolute references (i.e. scry paths) allows for more seamless social recovery – if any peer still has the scry binding, the breached ship could download and reinstate it.  The importance of immutable absolute references for data is one of the key insights leading to the "shrubbery" way of thinking.
+Something namespace-oriented, like the example with poking \patp{zod} by binding paths in our local namespace, could be more amenable to maintaining exactly-once delivery across suspension and revival without the kernel needing to maintain an unbounded queue of acks to deliver to the agent.  It could also help with recoverability after a breach, since storing userspace data with absolute references (i.e. scry paths) allows for more seamless social recovery – if any peer still has the scry binding, the breached ship could download and reinstate it.  The importance of immutable absolute references for data is one of the key insights leading to the ``shrubbery'' noun-maximalist way of thinking.
 
-One way in which applications are more persistent now than at the time of the whitepaper is that upgrades are now quite real.  The kernel and userspace apps can both upgrade "over the air" (OTA) by receiving new source code over the Urbit network.  The kernel's upgrade system was too buggy for production use until 2020, when the Ford Fusion project moved Ford into Clay – ridding Ford of all its buggy asynchronicities – and enforced a bottom-up upgrade order: Hoon, Arvo, vanes, then userspace.
+One way in which applications are more persistent now than at the time of the whitepaper is that upgrades are now quite real.  The kernel and userspace apps can both upgrade ``over the air'' ({\sc ota}) by receiving new source code over the Urbit network.  The kernel's upgrade system was too buggy for production use until 2020, when the Ford Fusion project moved Ford into Clay – ridding Ford of all its buggy asynchronicities – and enforced a bottom-up upgrade order: Hoon, Arvo, vanes, then userspace.
 
-A year later, near the end of 2021, the ability for Urbit to distribute and install userspace apps was added, enabled by major internal changes to Gall, Clay, and the Arvo kernel to ensure each Clay "desk" (unit of source distribution, like a Git repo) is independently buildable, bootstrapped from its own source code without any external dependencies.
+A year later, near the end of 2021, the ability for Urbit to distribute and install userspace apps was added, enabled by major internal changes to Gall, Clay, and the Arvo kernel to ensure each Clay desk (unit of source distribution) is independently buildable, bootstrapped from its own source code without any external dependencies.
 
-App publishers can push down source code to their users for the next version of their app, intended to be built and run using the next Kelvin version of the kernel.  When the user's ship receives the kernel's source code for the new Kelvin, it upgrades the apps and the kernel atomically with each other, ensuring all apps (soon: only apps marked as "essential") update succesfully – if an app fails to upgrade to the new Kelvin version, the Arvo event is aborted, rolling back the kernel upgrade and any other app upgrades that had happened during the event.
+App publishers can push down source code to their users for the next version of their app, intended to be built and run using the next Kelvin version of the kernel.  When the user's ship receives the kernel's source code for the new Kelvin, it upgrades the apps and the kernel atomically with each other, ensuring all apps (soon: only apps marked as ``essential'') update succesfully – if an app fails to upgrade to the new Kelvin version, the Arvo event is aborted, rolling back the kernel upgrade and any other app upgrades that had happened during the event.
 
-Eventually, the kernel should be able to keep agents designed for older kernels running.  We call this idea a "Kelvin shim".  A project along these lines was attempted at the start of 2023, but the current userspace model turns out to be to be too tightly coupled to the kernel for shimming to be feasible.  This experience has informed our next generation of ideas for the kernelspace/userspace interface.
+Eventually, the kernel should be able to keep agents designed for older kernels running.  We call this idea a ``Kelvin shim''.  A project along these lines was attempted at the start of 2023, but the current userspace model turns out to be to be too tightly coupled to the kernel for shimming to be feasible.  This experience has informed our next generation of ideas for the kernelspace/userspace interface.
 
-## Section 9.8 Acknowledgment
-
-A number of things have changed about acknowledgments.  Packet-level acks are being (mostly) removed.  Authentication for both packets and messages is being redone in the Directed Messaging project.  Negative acknowledgments are no longer a space leak and are cleaned up without loss of correctness after a certain number of later messages.  Finally, congestion control is being moved into the runtime.
+\paragraph{9.8 Acknowledgment}  Acknowledgments have changed in a number of ways.  Packet-level acks are being (mostly) removed.  Authentication for both packets and messages is being redone in the Directed Messaging project.  Negative acknowledgments are no longer a space leak and are cleaned up without loss of correctness after a certain number of later messages.  Finally, congestion control is being moved into the runtime.
 
 Some things have stayed the same.  A message is still an application-level transaction.  Ignoring the computation time to process a message is still a useful optimization for congestion control.  Negative acknowledgments are still considered to be string-like data describing an error, rather than a programmatically manipulable exception data structure.
 
-## Section 9.9 Packet Rejection
-
-Cryptography failures (failure to decrypt or authenticate a packet) still cause a silent packet drop.  XX what was the term that wireguard uses for this security property?  To streamline the implementation of this, the `bail:evil` error tag was added to the system so the runtime can know not to inject an error notification event into Arvo in the case of cryptographic failure.
+\paragraph{9.9 Packet Rejection}  Cryptography failures (failure to decrypt or authenticate a packet) still cause a silent packet drop.  TODO what was the term that wireguard uses for this security property?  To streamline the implementation of this, the \lstinline[style=inlinecode]{bail:evil} error tag was added to the system so the runtime can know not to inject an error notification event into Arvo in the case of cryptographic failure.
 
 The \lstinline[style=inlinecode]{%flub} move is a new reason to drop a packet.  When Ames passes a message to a local vane, the vane can now respond with a \lstinline[style=inlinecode]{%flub} move, indicating it is not yet ready to process the message.  If a message sent to a Gall agent that is not running, for example, then Gall will respond with a \lstinline[style=inlinecode]{%flub}.  The sending ship will keep retrying, slowly, on a timer, until the message goes through, but the receiving ship does not have to update any state in response – previous versions of the system required the receiving ship to maintain an unbounded queue of incoming pokes to agents that were not running, which was a denial-of-service vector.
 
-## Section 10 Ames Part 2, Bitstream
+\paragraph{10 Ames Part 2:  Bitstream}  The ``jam'' serialization format for nouns remains unchanged.  Its implementation in Vere is now much more flexible and optimized.  There are now also implementations in Rust, JavaScript, Haskell, and Common Lisp.
 
-The "jam" serialization format for nouns remains unchanged.  Its implementation in Vere is now much more flexible and optimized.  There are now also implementations in Rust, JavaScript, Haskell, and Common Lisp.
+There are more use cases for jammed nouns now.  Portable Arvo snapshots are jammed nouns.  Interprocess communication between the two Vere processes uses jammed nouns for its messages.  The Khan and Lick vanes also use jammed nouns for IPC, and Eyre, the {\sc http} vane, now supports {\sc http} subscriptions using jammed nouns in addition to {\sc json}.
 
-There are more use cases for jammed nouns now.  Portable Arvo snapshots are jammed nouns.  Interprocess communication between the two Vere processes uses jammed nouns for its messages.  The Khan and Lick vanes also use jammed nouns for IPC, and Eyre, the {\sc http} vane, now supports {\sc http} subscriptions using jammed nouns in addition to JSON.
-
-## Section 10.4 Packet Structure
-
-Modern Ames packets are still jammed nouns, and they still have a 32-bit header, but other than that almost everything is different.  For one thing, their internal fields are now byte-aligned, making them more human-readable in Wireshark or other Terran packet inspection programs.
+\paragraph{10.4 Packet Structure}  Modern Ames packets are still jammed nouns with a 32-bit header but other than that almost everything is different.  For one thing, their internal fields are now byte-aligned, making them more human-readable in Wireshark or other Terran packet inspection programs.
 
 A bigger shift is that as of Directed Messaging, packets are actually source-independent for the first time.
 
-## Section 10.5 Message Decoding
+\paragraph{10.5 Message Decoding}  This has been totally rewritten multiple times.  There is no more unencrypted first packet.  Routing will now be directed.
 
-This has been totally rewritten multiple times.  There is no more unencrypted first packet.  Routing will now be directed.
-
-## Section 10.7 Poke Processing
-
-Pokes are still typed and transactional.  The mark lookup is now performed on a per-desk basis, rather than globally, since each app can define its own marks.
+\paragraph{10.7 Poke Processing}  Pokes are still typed and transactional.  Mark lookup is now performed on a per-desk basis, rather than globally, since each app can define its own marks.
 
 Deferred acknowledgments are still vaporware.
 
-## Section 11 System Status and Roadmap
+\paragraph{11 System Status and Roadmap}  The whitepaper's 30,000 source lines of code has expanded to roughly 40,000.  This number should go down a bit over time.  Other aspects of reliability and performance have been extensively discussed above.
 
-The whitepaper's 30,000 source lines of code has expanded to roughly 40,000.  This number should go down a bit over time.
+The Urbit roadmap is available at \url{https://roadmap.urbit.org/}.
 
-XX quote whole paragraph and go line by line
+\#\# Section 12 Related Work
 
-## Section 12 Related Work
+XX have we learned from any other projects since the whitepaper?  {\sc ndn}, perhaps...
 
-XX have we learned from any other projects since the whitepaper?  NDN, perhaps...
-
-## Remaining
+\#\# Remaining
 
 XX turn into prose
 
 - scry over {\sc http}
 - eauth
-- TLS termination, letsencrypt
+- {\sc tls} termination, letsencrypt
 - pill management
 - aqua, pH, +test, -test
 - devstream process
 - published roadmap
-- UIPs
+- {\sc uip}s
 - UF leadership
-- %landscape, %glob
-- Clay tombstoning
+- \%landscape, \%glob
 - Clay global cache
 - reliability and usability of Tlon chat
 - reliability and performance of webpage loads
 - network scale improvements
 - web terminal
 - pointer compression
-- %bout timing hints
+- \%bout timing hints
 - color printing
 - ordered map data structure
 - compile-time evaluation in Hoon
@@ -713,10 +666,10 @@ XX turn into prose
 
 - sections
   - Early vane explosion, 2015-2017
-  - Hoon, Ford, Eyre, & Vere rewrites, 2017-2019
-  - Azimuth & Ames rewrite, 2018-2019
+  - Hoon, Ford, Eyre, \& Vere rewrites, 2017-2019
+  - Azimuth \& Ames rewrite, 2018-2019
   - bytecode interpreter, 2028-2019
-  - Ford Fusion & continuity, 2020
+  - Ford Fusion \& continuity, 2020
   - security audit on Ames, 2020
   - layer2, 2021
   - software distribution, 2021
