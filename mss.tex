@@ -15,7 +15,7 @@
 \fancyfoot[L]{{\footnotesize
               %% We toggle between these:
               % Manuscript submitted for review.\\
-              {\it Urbit Systems Technical Journal} I:1 (2024):  1–42. \\
+              {\it Urbit Systems Technical Journal} I:1 (2024):  1–45. \\
               ~ \\
               Address author correspondence to \authorpatp.
               }}
@@ -27,7 +27,7 @@
 \fancyfoot[LE,RO]{\thepage}
 
 %%MANUSCRIPT
-\title{The State of Urbit\\Eight Years After the Whitepaper}
+\title{The State of Urbit:\\Eight Years After the Whitepaper}
 \author{\authorname~\authorpatp \\ \affiliation}
 \date{}
 
@@ -37,6 +37,7 @@
 \thispagestyle{firststyle}
 
 \begin{abstract}
+\sloppy
 The Urbit whitepaper was released in 2016.  In the intervening eight years, the project has become much more fleshed out:  the sketch has started to take on color and detail.  This article explores the major developments since the whitepaper, including changes to the runtime, the network, the kernel, and the userspace.  It also discusses the current state of the project and intended refinements.
 \end{abstract}
 
@@ -236,7 +237,7 @@ A later update modified this behavior.  A newly installed app is now marked as n
 
 The next major frontier in continuity will be ``Kelvin shims'', i.e. a kernel that can keep stale apps designed to work with previous kernels running (through a ``shim'' for a previous Kelvin version), not just apps designed to run at exactly the current version.  This is a thorny problem that the core development team experimented with in early 2023 but abandoned.
 
-The hard part of Kelvin shimming turned out to be that the current version of the userspace/kernelspace API is complex.  Taming that interface and localizing application-related state to make it easier to migrate will be critical for enabling Kelvin shims.  The shrubbery experiment is a step in this direction.
+The hard part of Kelvin shimming turned out to be that the current version of the userspace/kernelspace {\sc api} is complex.  Taming that interface and localizing application-related state to make it easier to migrate will be critical for enabling Kelvin shims.  The shrubbery experiment is a step in this direction.
 
 More sophisticated kernel support for migrating applications is also likely to be a fruitful line of work.  This involves migrating application state from an old type to a new type, as well as supporting protocol negotiation to upgrade or downgrade commands and subscription updates to maintain compatibility between old and new versions of the same app on different ships.
 
@@ -254,7 +255,7 @@ In early 2023, the responsibility for core development transferred from the Tlon
 
 \subsubsection{Urbit Improvement Proposals}
 
-The Urbit Improvement Proposal system was introduced in mid-2023.  This is an {\sc rfc} system based heavily on Bitcoin's {\sc bip} system and Ethereum's {\sc eip} system.  On a biweekly basis, proposals are reviewed by core developers in group calls.  Since its launch, over twenty UIPs have been written, of which thirteen have been ratified and built.
+The Urbit Improvement Proposal system was introduced in mid-2023.  This is an {\sc rfc} system based heavily on Bitcoin's {\sc bip} system and Ethereum's {\sc eip} system.  On a biweekly basis, proposals are reviewed by core developers in group calls.  Since its launch, over twenty {\sc uip}s have been written, of which thirteen have been ratified and built.
 
 \subsection{Scaling}
 
@@ -368,7 +369,7 @@ Wetness has an issue where the ``faces'' (names for particular slots within the 
 
 Wetness in general is an interesting and novel approach to both polymorphic and recursive types, both of which are directly represented as lazily evaluated types (Urbit core devs often call the ``evaluation'' step ``type inference'' informally, but it corresponds to the ``type synthesis'' direction of a bidirectional typechecker in type theory terminology).  This has pros and cons.
 
-On one hand, this representation allows for more expressivity than many comparable type systems at around the same spot on Barendregt's lambda cube (λω: types and values can both depend on types).  For example, the \lstinline[style=inlinecode]{$_} rune allows the programmer to declare the type of one expression in terms of the return type of any other expression, without that expression ever needing to be run, only ``type-inferred'' (synthesized).  This is very convenient for programs that return modified versions of themselves, which is ubiquitous in Urbit.
+On one hand, this representation allows for more expressivity than many comparable type systems at around the same spot on \citeauthor{Barendregt1991}'s lambda cube (λω: types and values can both depend on types).  For example, the \lstinline[style=inlinecode]{$_} rune allows the programmer to declare the type of one expression in terms of the return type of any other expression, without that expression ever needing to be run, only ``type-inferred'' (synthesized).  This is very convenient for programs that return modified versions of themselves, which is ubiquitous in Urbit.
 
 On the other hand, wetness can be difficult to reason about – it is the hardest part of Hoon to understand fully.  In addition, it likely slows down the Hoon compiler considerably, since every call-site needs to run a separate full type synthesis step, and in chains of wet calls, that synthesis becomes recursive.  It is not difficult to imagine running up against exponential asymptotics in a system like this.
 
@@ -384,7 +385,7 @@ For example, Ames uses a synthetic duct for each ``flow'' (Ames's version of a s
 
 As another example, Gall now uses a per-agent synthetic duct for the moves coming out of that agent.  Note that this approach has a known flaw, where if an agent sets a timer in response to hearing a request from another ship, it needs to remember that ship in order to obtain the same duct to cancel the timer.  XX this doesn't make sense – how does the timer get into the wire?
 
-The dotket rune (`.^`) no longer blocks until complete.  Because the agent model expects non-blocking IO, a single dotket could make an entire agent stuck if it can't be completed.  While a lot of work has gone into fleshing out the scry namespace, core devs are now entertaining the notion that the expectation of synchronous access to the namespace might not be worth it for agents.  An Urbit Improvement Proposal has been submitted that would remove the dotket rune in favor of a move-based interface to the namespace.
+The \lstinline[style=inlinecode]{.^} dotket rune no longer blocks until complete.  Because the agent model expects non-blocking I/O, a single dotket could make an entire agent stuck if it can't be completed.  While a lot of work has gone into fleshing out the scry namespace, core devs are now entertaining the notion that the expectation of synchronous access to the namespace might not be worth it for agents.  An Urbit Improvement Proposal has been submitted that would remove the dotket rune in favor of a move-based interface to the namespace.
 
 This shift reflects a subtler attitude shift toward being more wary about asynchronicity.  Earlier Urbit designs were bolder about introducing asynchronous operations; more modern ones treat asynchronous operations as complex and bug-prone, to be avoided if possible.  This shift has come from experience – it is surprising to find race conditions in a single-threaded, purely functional operating system, but we have found and fixed plenty over the years.  
 
@@ -414,7 +415,7 @@ Directed messaging supports network reads in the form of namespace reads.  A shi
 
 Network writes (commands) are factored in terms of reads: a write request is sent as a read request for an acknowledgment that the command has been performed by the receiving ship.  When the receiving ship hears this request, it sends a network read request to download the command datum from the sending ship, who has published it in its scry namespace.  Once the command finishes downloading, the receiving ship performs the command and makes the acknowledgment available in its own namespace.
 
-As an optimization, the requesting ship places the first fragment of the command datum in the first request packet it sends.  In the common case of a 1KB command datum, the entire command+ack interaction consists of a single packet roundtrip.
+As an optimization, the requesting ship places the first fragment of the command datum in the first request packet it sends.  In the common case of a 1~KB command datum, the entire command+ack interaction consists of a single packet roundtrip.
 
 This is only the latest in a series of changes that have been made to Ames since the whitepaper:
 \begin{itemize}
@@ -476,9 +477,11 @@ Hoon has grown, but the semantics have largely remained intact.  \lstinline[styl
 
 Head recursion still requires a cast in Hoon.  The compiler can go into an infinite loop if given malformed input.  Interestingly, of all the challenges experienced by Hoon developers, this has turned out not to be a severe issue in practice.  (Future language designers take note:  needing to hit Ctrl-C if your compilation takes a lot longer than normal is not a show stopper.)
 
+Hoon keywords, employed in the whitepaper appendices, was removed due to disuse and disinterest.  Keyword Hoon may be re-introduced for pedagogical purposes, but for all essential purposes, runes are the most expressive and intuitive way to think about Hoon as a mature developer.
+
 \paragraph{7.2 Type Definition}
 
-All of the whitepaper's high-level claims about Hoon are still true, but a few changes to mold (type) declaration and the scope of the language's keyword equivalent (runes) has been expanded.\footnote{We consider the growth in Hoon to be somewhat unfortunate, and envision that it eventually slims back down somewhat as it is refined.}  There have been two or three revisions of syntax and type system.  The latest change added ``doccords'', a form of docstring, to the syntax.
+All of the whitepaper's high-level claims about Hoon are still true, but a few changes to mold (type) declaration and the scope of the language's keyword equivalent (runes) has been expanded.\footnote{We consider the growth of Hoon to be somewhat unfortunate, and envision that it eventually slims back down somewhat as it is refined.}  There have been two or three revisions of syntax and type system.  The latest change added ``doccords'', a form of docstring, to the syntax.
 
 The syntax for declaring molds has changed, and as of the last major revision to the mold system in 2019, it is now possible to add a predicate gate to a mold definition that will be run whenever the derived mold function (``gate'') is run to coerce a raw noun into a noun of that type.  This is useful for ingesting data that has constraints other than tree shape, such as the ordering of keys in a map.
 
@@ -554,7 +557,7 @@ The encrypted remote scry protocol also uses the \lstinline[style=inlinecode]{+c
 
 \paragraph{9.3 PKI}  Azimuth, the set of Ethereum contracts, replaced the whitepaper's original {\sc pki}.  About two years later, the ``Layer 2'' naive rollup was added to reduce the cost of spawning planets.
 
-``Wills'' and ``deeds'', as described in this section, are no longer part of the system.  8-bit Galaxies, 16-bit stars, and 32-bit planets all have their public keys listed on Ethereum.  A 64-bit moon is assigned its public key by the planet that spawned and owns it, and other ships find the moon's public key by asking the planet.  A 128-bit comet signs its address with its own key, and other ships validate the comet's key by checking that it hashes to the comet's address.  This prevents comets from breaching, but it allows them to self-authenticate without being part of the on-chain {\sc pki}.
+``Wills'' and ``deeds'', as described in this section, are no longer part of the system.  8-bit galaxies, 16-bit stars, and 32-bit planets all have their public keys listed on Ethereum.  A 64-bit moon is assigned its public key by the planet that spawned and owns it, and other ships find the moon's public key by asking the planet.  A 128-bit comet signs its address with its own key, and other ships validate the comet's key by checking that it hashes to the comet's address.  This prevents comets from breaching, but it allows them to self-authenticate without being part of the on-chain {\sc pki}.
 
 \paragraph{9.4 Update, Routing, and Parental Trust}
 
@@ -580,8 +583,10 @@ Ames flows (Ames's version of socket connections) can now be killed, allowing bo
 
 The whitepaper reads ``brain damage is fatal by default'', and ``event backup makes no sense'', but these claims are no longer considered true.  Various forms of recoverability have been added.  Personal breaches allow a ship to reset its communications with other ships after losing information.  The \lstinline[style=inlinecode]{%phoenix} app lets app state be backed up and restored – if the restoration occurs after a breach, it is heuristic and could be lossy, but apps can be written defensively to maintain as much state as possible across a breach.  Future work will likely push harder on recoverability.
 
+\sloppy
 Moving more network activity from writes to reads, through the scry namespace, has been shifting our conception of exactly-once delivery.  It now seems likely that by a year or two from now, Urbit's traditional notion of exactly-once delivery will be opt-in, built on top of the more general substrate of publishing scry bindings.
 
+\sloppy
 This requires another vaporware warning, but one could imagine a userspace application sending three poke commands to `~zod` by binding the commands to three paths like \lstinline[style=inlinecode]{/poke/~zod/foo/1}, \lstinline[style=inlinecode]{/poke/~zod/foo/2}, and \lstinline[style=inlinecode]{/poke/~zod/foo/3}, into a subtree of its own scry namespace.  The kernel would ensure \patp{zod} is notified of those bindings.  \patp{zod} would download the values at those paths and notify its \lstinline[style=inlinecode]{%foo} application.  The app would interpret the values as a sequence of poke commands, to be applied once and in order.  Once it processes each poke, it would bind an acknowledgment value to a predetermined path in its own namespace, such as \lstinline[style=inlinecode]{/ack/~nec/1}.
 
 \paragraph{9.7 Permanent Applications}  Applications are generally no longer considered permanent.  The current Gall model lets a user suspend an application and revive it later.  Unfortunately the current model is known to be unsound: ``signs'', i.e. responses to outgoing commands or queries, to a Gall agent are dropped while the agent is suspended, leading to an inconsistent state.
