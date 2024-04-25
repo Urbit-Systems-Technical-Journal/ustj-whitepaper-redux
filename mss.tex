@@ -54,8 +54,8 @@ The Urbit whitepaper \citep{Whitepaper} publicly elaborated the technical prospe
 While the whitepaper by its own admission presented itself as a ``work-in-progress presentation'' of a ``semi-closed alpha test'', the basic claims of the Urbit whitepaper are still true today.  Most of the intervening work over the past eight years has gone into improving robustness and better support for applications.  A capsule history of ``late early'' Urbit includes the following milestones:
 \begin{itemize}
   \item  2015–2017:  Early vane explosion
-  \item  2017–2019:  Hoon, Ford, Eyre, and Vere rewrites refine the system
-  \item  2018–2019:  Azimuth and Ames rewrite refine the network stack
+  \item  2017–2019:  Rewrites of Hoon, Ford, Eyre, and Vere refine the system
+  \item  2018–2019:  Rewrites of Azimuth and Ames refine the network stack
   \item  2018–2019:  Nock bytecode interpreter
   \item  2020:  Ford Fusion enables network continuity
   \item  2020:  Security audit on Ames
@@ -85,7 +85,7 @@ Urbit's ``scry'' data namespace is also much more real and fleshed out than it w
 The other big change is the public key infrastructure ({\sc pki}).  The whitepaper's {\sc pki}, which was effectively live from 2013 to 2019, had no double-spend protection and was effectively centralized.  To fix this, the {\sc pki} was moved to a set of Ethereum contracts.  Going on-chain made the ownership ledger for Urbit IDs censorship-resistant ... until a year later when high transaction fees on Ethereum brought network growth to a standstill and the core developers were forced to write a custom ``naive rollup'' Ethereum contract.  This brought the price of spawning a new Urbit node down from hundreds of dollars to under a dollar, at the cost of on-chain interoperability.
 
 \sloppy
-Going on-chain also enabled ``personal continuity breaches'', in which a ship owner can notify the network through the chain that their Urbit node was rebooted from scratch, due to data loss, unrecoverable error, or compromised security.  This feature necessitated some rework of the kernel to ensure data consistency across vanes when receiving a notification that a peer had breached.
+Going on-chain also enabled ``personal continuity breaches'', in which a ship (instance) owner can notify the network through the chain that their Urbit node was rebooted from scratch, due to data loss, unrecoverable error, or compromised security.  This feature necessitated some rework of the kernel to ensure data consistency across vanes when receiving a notification that a peer had breached.
 
 Finally, a ton of work has been done on Urbit's runtime.  Lots of 2016 vaporware is corporeal in 2024.
 
@@ -250,7 +250,7 @@ As described earlier, the Ford Fusion project moved Urbit's build system from a 
 \sloppy
 This was crucial for performing the last network breach at the end of 2020, establishing permanent continuity – since then, many dozens of over-the-air upgrades have been deployed.  Without a reliable upgrade process, this continuity era would be infeasible.
 
-\subsection{Essential Desks (2023/2024)}
+\subsection{Essential Desks (2023–24)}
 
 Having gained experience with managing deployments of both kernelspace and userspace desks, it became clear that the original way that kernel updates synchronized with app updates needed more flexibility.  Any app could block a kernel upgrade if its developer had not also pushed out a new version that was compatible with the new kernel.  A user could always suspend a stale app to allow the upgrade, but this had to be done manually.
 
@@ -304,7 +304,7 @@ The runtime has absorbed a large percentage of the work that has been done in th
 
 The runtime was broken into two processes, allowing I/O and Arvo event processing to run in parallel.  The event log was moved out of a custom file into an {\sc lmdb} database, then broken up into ``epochs'' allowing for event log rollover and truncation.  The I/O drivers in the runtime have continued to be developed, including full rewrites of the {\sc http}, Ames, and terminal drivers.  
 
-The Ares project, now close to initial deployment, includes a clean-slate rewrite of the Nock interpreter, using an all-new allocator, a novel static analysis technique called Subject Knowledge Analysis to achieve substantial Nock execution speed improvements, and a new persistence module called the Persistent Memory Arena, using a copy-on-write B+ tree to keep memory pages synchronized between disk and {\sc ram}.
+The Ares project, close to initial deployment as of writing, includes a clean-slate rewrite of the Nock interpreter, using an all-new allocator, a novel static analysis technique called Subject Knowledge Analysis to achieve substantial Nock execution speed improvements, and a new persistence module called the Persistent Memory Arena, using a copy-on-write B+ tree to keep memory pages synchronized between disk and {\sc ram}.
 
 \subsection{Control Plane}
 
@@ -328,7 +328,7 @@ Once users started to have multiple desks with complex applications in them, the
 
 Having many copies of the same library in memory is a well-known problem with static linking, which is logically what Ford does to link Hoon programs together.  The linking step is a trivial dynamically typed (``vase-mode'') `cons' operation, since Hoon's variable lookup simply traverses the ``subject'' (environment) type left-to-right.  Importing a library means prepending that library to the environment.
 
-Fortunately, because Urbit supports structural sharing and Ford is a purely functional build system, a referentially transparent cache was added to Ford.  This cache does not know which desk a build is being run in, so it can cache and deduplicate builds across desks seamlessly without losing the logical static linking (see pp. 75–82 in this issue).
+Fortunately, because Urbit supports structural sharing and Ford is a purely functional build system, a referentially transparent cache was added to Ford.  This cache does not know which desk a build is being run in, so it can cache and deduplicate builds across desks seamlessly without losing the logical static linking (see \citet{Blackman2024}, pp. 75–82 in this issue).
 
 Urbit thus gets the best of both worlds: the sanity of static linking and the memory deduplication of dynamic linking.
 
@@ -346,8 +346,7 @@ For full protection, however, a system of ``userspace permissions'' is required,
 
 \section{Conclusion}
 
-Urbit development has begun to realize many of the promises of the 2016 whitepaper.  The system is more reliable, more scalable, more extensible, and more secure than it was then.  The network has grown to include thousands of users, and the system is now capable of supporting a much larger userbase.  Indeed, this article omits many quality-of-life improvements, such as scrying over {\sc http}, EAuth, \lstinline[style=inlinecode]{%bout} timing hints, bootstrap pill management, reliability and usability of Tlon's social media application, color printing, ordered map data structures, compile-time evaluation in Hoon, the Bridge contract operations tool for Azimuth and details of the Urbit HD wallet, the 
-The published roadmap (available at \url{https://roadmap.urbit.org/}) provides more detail on past and planned accomplishments at a resolution impossible in a single article.
+Urbit development has begun to realize many of the promises of the 2016 whitepaper.  The system is more reliable, more scalable, more extensible, and more secure than it was then.  The network has grown to include thousands of users, and the system is now capable of supporting a much larger userbase.  Indeed, this article omits many quality-of-life improvements, such as scrying over {\sc http}, EAuth, \lstinline[style=inlinecode]{%bout} timing hints, bootstrap pill management, reliability and usability of Tlon's social media application, color printing, ordered map data structures, compile-time evaluation in Hoon, the Bridge contract operations tool for Azimuth, and details of the Urbit HD wallet.  More detail on past and planned accomplishments are provided at the published roadmap, \url{https://roadmap.urbit.org/}.
 
 While more work remains to be done, the kernel of Urbit is sound and the contours of the kelvin-cooled system have begun to assume more resolution.  \tombstone{}
 
@@ -410,7 +409,7 @@ Arvo's ``duct'' as a reified vane call stack is still very much in use.  The pat
 
 For example, Ames uses a synthetic duct for each ``flow'' (Ames's version of a socket connection) to set packet re-send timers for that flow and pass requests to other vanes.  This disconnects the flow's duct from the duct that the runtime used to inject the event into Arvo, preventing Unix process restarts from causing desynchronization.  As another example, Gall now uses a per-agent synthetic duct for the moves coming out of that agent.\footnote{Note that this approach currently has a known flaw, wherein if an agent sets a timer in response to hearing a request from another ship, it needs to remember that ship in order to obtain the same duct to cancel the timer, cf. \href{https://github.com/urbit/urbit/issues/6884}{issue \#6884}.}
 
-The \lstinline[style=inlinecode]{.^} dotket rune no longer blocks until complete.  Because the agent model expects non-blocking I/O, a single dotket could make an entire agent stuck if it can't be completed.  While a lot of work has gone into fleshing out the scry namespace, core developers are now entertaining the notion that the expectation of synchronous access to the namespace might not be worth it for agents.  An Urbit Improvement Proposal has been submitted that would remove the \lstinline[style=inlinecode]{.^} dotket rune in favor of a move-based interface to the namespace (see pp. 47–58 in this issue).
+The \lstinline[style=inlinecode]{.^} dotket rune no longer blocks until complete.  Because the agent model expects non-blocking I/O, a single dotket could make an entire agent stuck if it can't be completed.  While a lot of work has gone into fleshing out the scry namespace, core developers are now entertaining the notion that the expectation of synchronous access to the namespace might not be worth it for agents.  An Urbit Improvement Proposal has been submitted that would remove the \lstinline[style=inlinecode]{.^} dotket rune in favor of a move-based interface to the namespace (see \citet{Blackman2024a}, pp. 47–58 in this issue).
 
 This shift reflects a subtler attitude shift toward being more wary about asynchronicity.  Earlier Urbit designs were bolder about introducing asynchronous operations; more modern ones treat asynchronous operations as complex and bug-prone, to be avoided if possible.  This shift has come from experience – it is surprising to find race conditions in a single-threaded, purely functional operating system, but we have found and fixed plenty over the years.  
 
