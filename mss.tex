@@ -121,7 +121,7 @@ Note that this latest iteration, with a single large effect, is more declarative
 
 \subsubsection{Remote Scry Protocol}
 
-A major part of making the namespace more usablae was to expose namespace queries over the network.  Designed in 2021 and deployed in 2023, the ``Fine''\footnote{Pronounced \emph{fee-NAY}, after French cartographer and mathematician Oronce Fine.} remote scry network protocol was added to Urbit.  The first use cases were Clay, which uses it for downloading desks, and the Gall \lstinline[style=inlinecode]{%grow} namespace, described in more detail in a later section.
+A major part of making the namespace more usable was to expose namespace queries over the network.  Designed in 2021 and deployed in 2023, the ``Fine''\footnote{Pronounced \emph{fee-NAY}, after French cartographer and mathematician Oronce Fine.} remote scry network protocol was added to Urbit.  The first use cases were Clay, which uses it for downloading desks, and the Gall \lstinline[style=inlinecode]{%grow} namespace, described in more detail in a later section.
 
 This protocol lets one ship fetch data at a namespace path bound by another ship.  The runtime includes a cache so later requests for the same data are typically served from the runtime cache rather than requiring Arvo's \lstinline[style=inlinecode]{+peek} arm to be called again.  In addition to the scalability benefits this provided, it also represented a fairly large conceptual shift: instead of Urbit's networking only being able to express commands (writes) over the network, it could now also support reads.
 
@@ -182,7 +182,7 @@ The latest ``shrubbery'' (q.\,v.)\ experiment uses a hybrid move ordering: depth
 
 \subsection{Shrubbery}
 
-``Shrubbery'' refers to an architectural concept in which all user\-space data is addressible in the scry namespace.  This would include source code and application state in addition to inert file-like data.
+``Shrubbery'' refers to an architectural concept in which all user\-space data is addressable in the scry namespace.  This would include source code and application state in addition to inert file-like data.
 
 A well-functioning shrubbery vane would replace Clay and Gall, unifying the storage and management of data and code into a single namespace-backed system.
 
@@ -221,7 +221,7 @@ This allows a user to continue to use the address they purchased even if their U
 \subsubsection{Azimuth: Constitution}
 
 \sloppy
-The Urbit galaxies have always been considered to form a senate, acting as the Shelling point for network governance.  Before going on chain, this was merely an idea – now it is a formalized reality.  Galaxies can vote on-chain, using a smart contract that has control over the other smart contracts.
+The Urbit galaxies have always been considered to form a senate, acting as the Schelling point for network governance.  Before going on chain, this was merely an idea – now it is a formalized reality.  Galaxies can vote on-chain, using a smart contract that has control over the other smart contracts.
 
 There are two ways galaxies can vote: on (the hash of) a document to signal support of that document, and on a new constitution contract, which will trigger the old constitution contract to cede control to the new constitution contract that replaces it.  This means the galaxies can vote to upgrade the constitution as they see fit – an elegant example of social meta\-circularity.
 
@@ -516,13 +516,13 @@ A number of runes have been added to Hoon:
   \item  \lstinline[style=inlinecode]{$|} bucbar (produce structure to satisfy validator)
   \item  \lstinline[style=inlinecode]{$<} bucgal (filter a mold, exclude)
   \item  \lstinline[style=inlinecode]{$>} bucgar (filter a mold, match)
-  \item  \lstinline[style=inlinecode]{$:} bucmic (enter manual value mode)
+  \item  \lstinline[style=inlinecode]{$:} buccol (produce tuple mold)
   \item  \lstinline[style=inlinecode]{$~} bucsig (define default custom type value)
   \item  \lstinline[style=inlinecode]{#/} haxfas (produce typed path)
   \item  \lstinline[style=inlinecode]{+$} lusbuc (type constructor arm)
   \item  \lstinline[style=inlinecode]{+*} lustar (door alias)
   \item  \lstinline[style=inlinecode]{;<} micgal (monadic do notation)
-  \item  \lstinline[style=inlinecode]{^~} tissig (compose many expressions)
+  \item  \lstinline[style=inlinecode]{^~} ketsig (store constant at compile time)
   \item  \lstinline[style=inlinecode]{?#} wuthax (match type, experimental)
   \item  \lstinline[style=inlinecode]{!<} zapgal (extract vase to mold)
 \end{enumerate}
